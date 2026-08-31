@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -61,6 +61,26 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
   onSelectSkin,
   onClose,
 }) => {
+  // Live flapping showcase state
+  const [flapAngle, setFlapAngle] = useState(-5);
+
+  useEffect(() => {
+    if (!visible) return;
+    const interval = setInterval(() => {
+      setFlapAngle((a) => (a === -8 ? 8 : -8));
+    }, 280);
+    return () => clearInterval(interval);
+  }, [visible]);
+
+  const currentSkinConfig = SKINS.find((s) => s.id === selectedSkin) || SKINS[0];
+
+  const getSkinParticlesLabel = (skinId: BirdSkinId) => {
+    if (skinId === 'tuxedo') return '💵 $100 CASH BILLS & GOLD SPARKS';
+    if (skinId === 'golfer') return '⛳ FLYING GOLF BALLS & FLORIDA LAWN';
+    if (skinId === 'maga') return '⭐ RED & BLUE PATRIOT CONFETTI';
+    return '✨ WHITE HOUSE BLUE STARS';
+  };
+
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
@@ -69,6 +89,28 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>👔 DON BIRD WARDROBE</Text>
             <Text style={styles.subtitle}>UNLOCK PRESIDENTIAL ATTIRE</Text>
+          </View>
+
+          {/* Live Interactive Flapping Showcase */}
+          <View style={styles.showcase}>
+            <View style={styles.showcaseBird}>
+              <DonBirdSvg
+                size={86}
+                rotation={flapAngle}
+                shieldActive={false}
+                magnetActive={false}
+                skinId={selectedSkin}
+              />
+            </View>
+            <View style={styles.showcaseInfo}>
+              <Text style={styles.showcaseTag}>EQUIPPED LOOK</Text>
+              <Text style={[styles.showcaseTitle, { color: currentSkinConfig.themeColor }]}>
+                {currentSkinConfig.name}
+              </Text>
+              <Text style={styles.showcaseFX}>
+                {getSkinParticlesLabel(selectedSkin)}
+              </Text>
+            </View>
           </View>
 
           <ScrollView style={styles.skinsList} showsVerticalScrollIndicator={false}>
@@ -91,7 +133,7 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
                 >
                   {/* Skin Avatar Preview */}
                   <View style={styles.skinAvatar}>
-                    <DonBirdSvg size={58} rotation={0} skinId={skin.id} />
+                    <DonBirdSvg size={52} rotation={0} skinId={skin.id} />
                   </View>
 
                   {/* Skin Info */}
@@ -142,9 +184,9 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    maxHeight: '85%',
+    maxHeight: '90%',
     borderRadius: 24,
-    padding: 20,
+    padding: 18,
     borderWidth: 2,
     borderColor: '#334155',
     shadowColor: '#38BDF8',
@@ -155,31 +197,67 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '900',
     color: '#F8FAFC',
     letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#38BDF8',
     letterSpacing: 1.5,
     marginTop: 2,
   },
+  showcase: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#38BDF8',
+    padding: 12,
+    marginBottom: 12,
+  },
+  showcaseBird: {
+    width: 86,
+    height: 86,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  showcaseInfo: {
+    flex: 1,
+  },
+  showcaseTag: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 1.0,
+  },
+  showcaseTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  showcaseFX: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FACC15',
+  },
   skinsList: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   skinCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0F172A',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 8,
     borderWidth: 1.5,
     borderColor: '#1E293B',
   },
@@ -191,11 +269,11 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   skinAvatar: {
-    width: 60,
-    height: 60,
+    width: 52,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   skinDetails: {
     flex: 1,
@@ -204,37 +282,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   skinName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
     color: '#F8FAFC',
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
   },
   statusBadgeText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '900',
   },
   skinSubtitle: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#94A3B8',
     fontWeight: '600',
   },
   closeBtn: {
-    backgroundColor: '#334155',
-    paddingVertical: 13,
+    backgroundColor: '#0284C7',
+    paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
   },
   closeBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
   },

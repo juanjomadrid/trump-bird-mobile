@@ -10,25 +10,29 @@ import {
   PowerUpType,
   FloatingEnemy,
   Particle,
+  FloatingPopup,
+  SpeechBalloonState,
+  ApprovalComboState,
+  PresidentialQuest,
+  AudioSettings,
 } from '../types/game';
 import { SoundManager } from '../services/sound';
 import { StorageService } from '../services/storage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Engine constants
-const GRAVITY = 0.38;
-const JUMP_VELOCITY = -7.2;
-const BASE_SCROLL_SPEED = 2.6;
+// Engine physics constants (normalized to 60 FPS tick)
+const BASE_GRAVITY = 0.38;
+const BASE_JUMP_VELOCITY = -7.4;
+const BASE_SCROLL_SPEED = 2.7;
 const WALL_WIDTH = 64;
-const WALL_GAP = 150;
+const WALL_GAP = 152;
 const BIRD_SIZE = 52;
 const GROUND_Y = SCREEN_HEIGHT - 60;
 const CEILING_Y = 20;
 const SHIELD_DURATION_SEC = 5.0;
 const MAGNET_DURATION_SEC = 6.0;
 
-// Deterministic PRNG for Daily Challenge
 const getTodayKey = () => new Date().toISOString().split('T')[0];
 
 const createDailyRng = (seedStr: string) => {
@@ -53,6 +57,30 @@ export const useGameEngine = () => {
   const [playerName, setPlayerName] = useState('Don The Great');
   const [selectedSkin, setSelectedSkin] = useState<BirdSkinId>('classic');
   const [screenFlash, setScreenFlash] = useState<string | null>(null);
+  const [rallyStars, setRallyStars] = useState(100);
+  const [quests, setQuests] = useState<PresidentialQuest[]>([]);
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>(SoundManager.getSettings());
+
+  // Tactical Pause & Resume Countdown
+  const [resumeCountdown, setResumeCountdown] = useState<number | null>(null);
+
+  // UX: Approval Rating Combo & Multiplier State
+  const [combo, setCombo] = useState<ApprovalComboState>({
+    current: 0,
+    max: 5,
+    multiplier: 1,
+    isMaxed: false,
+  });
+
+  // UX: Speech Balloon Visual Subtitle
+  const [speechBalloon, setSpeechBalloon] = useState<SpeechBalloonState>({
+    visible: false,
+    text: '',
+    expiresAt: 0,
+  });
+
+  // UX: Floating Score & Status Popups
+  const [popups, setPopups] = useState<FloatingPopup[]>([]);
 
   // Entities state
   const [bird, setBird] = useState<BirdState>({
@@ -81,15 +109,88 @@ export const useGameEngine = () => {
   const totalDistanceRef = useRef<number>(0);
   const dailyRngRef = useRef<(() => number) | null>(null);
 
-  // Load stored player data
+  // Load stored data
   useEffect(() => {
     StorageService.getPlayerName().then(setPlayerName);
     StorageService.getHighScore().then(setHighScore);
     StorageService.getSelectedSkin().then(setSelectedSkin);
     StorageService.getDailyHighScore(getTodayKey()).then(setDailyHighScore);
+    StorageService.getQuests().then(setQuests);
+    StorageService.getRallyStars().then(setRallyStars);
+    StorageService.getAudioSettings().then((s) => {
+      setAudioSettings(s);
+      SoundManager.updateSettings(s);
+    });
+
+    // Register visual comic speech balloon listener
+    const unregister = SoundManager.registerSpeechListener((text, durationMs = 2800) => {
+      setSpeechBalloon({
+        visible: true,
+        text,
+        expiresAt: Date.now() + durationMs,
+      });
+    });
+
+    return () => unregister();
   }, []);
 
-  // Spawn particle explosion
+  // Update Quest Progress helper
+  const updateQuestProgress = useCallback((questId: string, amount: number = 1) => {
+    setQuests((prev) => {
+      const next = prev.map((q) => {
+        if (q.id === questId && !q.completed) {
+          const newProgress = Math.min(q.target, q.progress + amount);
+          return {
+            ...q,
+            progress: newProgress,
+            completed: newProgress >= q.target,
+          };
+        }
+        return q;
+      });
+      StorageService.setQuests(next);
+      return next;
+    });
+  }, []);
+
+  // Claim Quest Reward
+  const claimQuest = useCallback((questId: string) => {
+    setQuests((prev) => {
+      const next = prev.map((q) => {
+        if (q.id === questId && q.completed && !q.claimed) {
+          setRallyStars((s) => {
+            const nextStars = s + q.rewardStars;
+            StorageService.setRallyStars(nextStars);
+            return nextStars;
+          });
+          return { ...q, claimed: true };
+        }
+        return q;
+      });
+      StorageService.setQuests(next);
+      return next;
+    });
+  }, []);
+
+  // Spawn Floating Popup
+  const spawnPopup = useCallback((x: number, y: number, text: string, color: string = '#FACC15') => {
+    setPopups((prev) => [
+      ...prev,
+      {
+        id: `pop_${Date.now()}_${Math.random()}`,
+        x,
+        y: y - 10,
+        text,
+        color,
+        scale: 1.25,
+        alpha: 1.0,
+        life: 0,
+        maxLife: 42,
+      },
+    ]);
+  }, []);
+
+  // Spawn Particle Explosion
   const spawnExplosion = useCallback((x: number, y: number, color: string = '#F59E0B', count: number = 14) => {
     const newParticles: Particle[] = [];
     for (let i = 0; i < count; i++) {
@@ -111,23 +212,55 @@ export const useGameEngine = () => {
     setParticles((prev) => [...prev, ...newParticles]);
   }, []);
 
-  // Flap / Jump Action
+  // Flap / Jump with immediate responsive touch
   const handleFlap = useCallback(() => {
     if (gameMode !== 'PLAYING') return;
 
     SoundManager.playFlap();
     setBird((prev) => ({
       ...prev,
-      vy: JUMP_VELOCITY,
-      rotation: -25,
+      vy: BASE_JUMP_VELOCITY,
+      rotation: -28, // Instant responsive pitch up
     }));
+  }, [gameMode]);
+
+  // Tactical Pause
+  const pauseGame = useCallback(() => {
+    if (gameMode === 'PLAYING') {
+      setGameMode('PAUSED');
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    }
+  }, [gameMode]);
+
+  // Resume with 3-2-1 countdown
+  const resumeGame = useCallback(() => {
+    if (gameMode === 'PAUSED') {
+      setGameMode('COUNTDOWN');
+      setResumeCountdown(3);
+
+      const interval = setInterval(() => {
+        setResumeCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(interval);
+            setResumeCountdown(null);
+            lastTimeRef.current = performance.now();
+            setGameMode('PLAYING');
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 750);
+    }
   }, [gameMode]);
 
   // Trigger Executive Order
   const triggerExecutiveOrder = useCallback(() => {
     SoundManager.playPowerUp('EXECUTIVE_ORDER');
     setScreenFlash('rgba(250, 204, 21, 0.45)');
-    setTimeout(() => setScreenFlash(null), 400);
+    setTimeout(() => setScreenFlash(null), 380);
+
+    spawnPopup(bird.x, bird.y - 30, '📜 EXECUTIVE BLAST! +5', '#FACC15');
+    updateQuestProgress('q_powerups', 1);
 
     // Obliterate all on-screen obstacles and enemies
     setObstacles((prev) =>
@@ -145,12 +278,13 @@ export const useGameEngine = () => {
     setEnemies((prev) =>
       prev.map((e) => {
         spawnExplosion(e.x, e.y, '#EF4444', 10);
+        updateQuestProgress('q_enemies', 1);
         return { ...e, destroyed: true };
       })
     );
 
     setScore((s) => s + 5);
-  }, [spawnExplosion]);
+  }, [bird.x, bird.y, spawnExplosion, spawnPopup, updateQuestProgress]);
 
   // Start game run
   const startGame = useCallback((mode: PlayMode = 'STANDARD') => {
@@ -164,7 +298,7 @@ export const useGameEngine = () => {
     setBird({
       x: SCREEN_WIDTH * 0.25,
       y: SCREEN_HEIGHT * 0.42,
-      vy: JUMP_VELOCITY * 0.5,
+      vy: BASE_JUMP_VELOCITY * 0.5,
       rotation: -10,
       width: BIRD_SIZE,
       height: BIRD_SIZE,
@@ -177,16 +311,19 @@ export const useGameEngine = () => {
     setPowerUps([]);
     setEnemies([]);
     setParticles([]);
+    setPopups([]);
+    setCombo({ current: 0, max: 5, multiplier: 1, isMaxed: false });
     setScore(0);
     setScrollOffset(0);
     setScreenFlash(null);
+    setResumeCountdown(null);
     totalDistanceRef.current = 0;
     nextSpawnDistanceRef.current = SCREEN_WIDTH + 100;
     lastTimeRef.current = performance.now();
     setGameMode('PLAYING');
   }, []);
 
-  // Main 60 FPS Game Loop
+  // Main Butter-Smooth Game Loop (Normalized with Delta Time)
   useEffect(() => {
     if (gameMode !== 'PLAYING') {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -198,14 +335,15 @@ export const useGameEngine = () => {
     const loop = (time: number) => {
       if (!isRunning) return;
 
-      const dt = Math.min((time - lastTimeRef.current) / 1000, 0.05);
+      // Delta time normalized to 60 FPS (16.67ms = 1.0 unit)
+      const rawDtSec = Math.min((time - lastTimeRef.current) / 1000, 0.045);
+      const dtFactor = Math.min(rawDtSec / 0.01667, 2.0); // 1.0 at 60 FPS, 0.5 at 120 FPS
       lastTimeRef.current = time;
 
       const getRandom = () => (dailyRngRef.current ? dailyRngRef.current() : Math.random());
+      const currentSpeed = (BASE_SCROLL_SPEED + Math.min(score * 0.04, 2.0)) * dtFactor;
 
-      const currentSpeed = BASE_SCROLL_SPEED + Math.min(score * 0.04, 2.0);
-
-      // 1. Update Scroll & Spawning
+      // 1. Update Scroll & Obstacle Spawning
       setScrollOffset((prev) => prev + currentSpeed);
       totalDistanceRef.current += currentSpeed;
 
@@ -230,7 +368,7 @@ export const useGameEngine = () => {
 
         setObstacles((prev) => [...prev, newWall]);
 
-        // 35% chance to spawn a PowerUp (Iron Dome, Executive Order, or Golden Magnet)
+        // 35% chance to spawn a PowerUp
         const pRand = getRandom();
         if (pRand < 0.35) {
           const powerUpY = topH + WALL_GAP / 2 + (getRandom() * 40 - 20);
@@ -272,23 +410,27 @@ export const useGameEngine = () => {
         }
       }
 
-      // 2. Update Bird Physics & Timers
+      // 2. Update Bird Physics & Smooth Rotation Damping (Aerodynamic Lerping)
       setBird((prev) => {
-        const nextVy = prev.vy + GRAVITY;
-        const nextY = prev.y + nextVy;
-        const nextRot = Math.min(Math.max(-30, nextVy * 4.5), 70);
+        const nextVy = prev.vy + BASE_GRAVITY * dtFactor;
+        const nextY = prev.y + nextVy * dtFactor;
+
+        // Target rotation based on velocity
+        const targetRot = Math.min(Math.max(-28, nextVy * 4.6), 65);
+        // Exponential smoothing / angular damping
+        const smoothRot = prev.rotation + (targetRot - prev.rotation) * Math.min(1.0, 0.24 * dtFactor);
 
         let nextShieldActive = prev.shieldActive;
         let nextShieldTime = prev.shieldTimeRemaining;
         if (nextShieldActive) {
-          nextShieldTime = Math.max(0, nextShieldTime - dt);
+          nextShieldTime = Math.max(0, nextShieldTime - rawDtSec);
           if (nextShieldTime <= 0) nextShieldActive = false;
         }
 
         let nextMagnetActive = prev.magnetActive;
         let nextMagnetTime = prev.magnetTimeRemaining;
         if (nextMagnetActive) {
-          nextMagnetTime = Math.max(0, nextMagnetTime - dt);
+          nextMagnetTime = Math.max(0, nextMagnetTime - rawDtSec);
           if (nextMagnetTime <= 0) nextMagnetActive = false;
         }
 
@@ -296,7 +438,7 @@ export const useGameEngine = () => {
           ...prev,
           y: nextY,
           vy: nextVy,
-          rotation: nextRot,
+          rotation: smoothRot,
           shieldActive: nextShieldActive,
           shieldTimeRemaining: nextShieldTime,
           magnetActive: nextMagnetActive,
@@ -304,15 +446,41 @@ export const useGameEngine = () => {
         };
       });
 
-      // 3. Update Obstacles position & pass detection
+      // 3. Update Obstacles position, pass detection & Combo escalation
       setObstacles((prev) =>
         prev
           .map((w) => {
             const nextX = w.x - currentSpeed;
             if (!w.passed && nextX + w.width < bird.x) {
+              updateQuestProgress('q_walls', 1);
+
+              // Calculate points with Approval Combo multiplier
+              setCombo((c) => {
+                const nextCur = c.current + 1;
+                const isMax = nextCur >= c.max;
+                if (isMax && !c.isMaxed) {
+                  SoundManager.playComboMax();
+                  spawnPopup(bird.x, bird.y - 35, '🔥 2X APPROVAL MULTIPLIER!', '#F59E0B');
+                }
+                return {
+                  ...c,
+                  current: Math.min(c.max, nextCur),
+                  multiplier: isMax ? 2 : 1,
+                  isMaxed: isMax,
+                };
+              });
+
               setScore((s) => {
-                const newScore = s + 1;
+                const addScore = combo.multiplier;
+                const newScore = s + addScore;
                 SoundManager.playScore(newScore);
+
+                spawnPopup(
+                  bird.x,
+                  bird.y - 20,
+                  combo.multiplier > 1 ? `+${addScore} (2X COMBO!)` : '+1 VOTE',
+                  combo.multiplier > 1 ? '#FACC15' : '#38BDF8'
+                );
 
                 if (playMode === 'DAILY') {
                   if (newScore > dailyHighScore) {
@@ -321,6 +489,9 @@ export const useGameEngine = () => {
                   }
                 } else {
                   if (newScore > highScore) {
+                    if (s <= highScore && newScore > highScore && highScore > 0) {
+                      spawnPopup(bird.x, bird.y - 45, '🏆 NEW ALL-TIME RECORD!', '#EC4899');
+                    }
                     setHighScore(newScore);
                     StorageService.setHighScore(newScore);
                   }
@@ -334,20 +505,19 @@ export const useGameEngine = () => {
           .filter((w) => w.x + w.width > -50)
       );
 
-      // 4. Update PowerUps (with Golden Magnet Attraction)
+      // 4. Update PowerUps with Smooth Golden Magnet Attraction
       setPowerUps((prev) =>
         prev
           .map((p) => {
             let nextX = p.x - currentSpeed;
             let nextY = p.y;
 
-            // If Golden Magnet is active, pull items towards Don Bird!
             if (bird.magnetActive && !p.collected) {
               const dx = bird.x - p.x;
               const dy = bird.y - p.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < 260 && dist > 1) {
-                const pullStrength = 6.0;
+              if (dist < 280 && dist > 1) {
+                const pullStrength = 6.4 * dtFactor;
                 nextX += (dx / dist) * pullStrength;
                 nextY += (dy / dist) * pullStrength;
               }
@@ -378,20 +548,38 @@ export const useGameEngine = () => {
           .filter((e) => e.x > -50 && !e.destroyed)
       );
 
-      // 6. Update Particles
+      // 6. Update Floating Popups
+      setPopups((prev) =>
+        prev
+          .map((pop) => ({
+            ...pop,
+            y: pop.y - 1.2 * dtFactor,
+            life: pop.life + 1 * dtFactor,
+            alpha: Math.max(0, 1 - pop.life / pop.maxLife),
+            scale: Math.max(0.9, pop.scale - 0.006 * dtFactor),
+          }))
+          .filter((pop) => pop.life < pop.maxLife)
+      );
+
+      // 7. Update Speech Balloon Expiration
+      if (speechBalloon.visible && Date.now() > speechBalloon.expiresAt) {
+        setSpeechBalloon((prev) => ({ ...prev, visible: false }));
+      }
+
+      // 8. Update Particles
       setParticles((prev) =>
         prev
           .map((p) => ({
             ...p,
-            x: p.x + p.vx,
-            y: p.y + p.vy,
-            life: p.life + 1,
+            x: p.x + p.vx * dtFactor,
+            y: p.y + p.vy * dtFactor,
+            life: p.life + 1 * dtFactor,
             alpha: Math.max(0, 1 - p.life / p.maxLife),
           }))
           .filter((p) => p.life < p.maxLife)
       );
 
-      // 7. Hitbox Collision Checks
+      // 9. Hitbox Collision Checks
       const birdBox = {
         left: bird.x - BIRD_SIZE * 0.38,
         right: bird.x + BIRD_SIZE * 0.38,
@@ -420,6 +608,8 @@ export const useGameEngine = () => {
 
             if (p.type === 'IRON_DOME') {
               SoundManager.playPowerUp('IRON_DOME');
+              spawnPopup(bird.x, bird.y - 30, '🛡️ IRON DOME ACTIVE!', '#38BDF8');
+              updateQuestProgress('q_powerups', 1);
               setBird((b) => ({
                 ...b,
                 shieldActive: true,
@@ -429,6 +619,8 @@ export const useGameEngine = () => {
               triggerExecutiveOrder();
             } else if (p.type === 'GOLDEN_MAGNET') {
               SoundManager.playPowerUp('GOLDEN_MAGNET');
+              spawnPopup(bird.x, bird.y - 30, '🧲 GOLDEN MAGNET ON!', '#FEF08A');
+              updateQuestProgress('q_powerups', 1);
               setBird((b) => ({
                 ...b,
                 magnetActive: true,
@@ -492,6 +684,7 @@ export const useGameEngine = () => {
           if (bird.shieldActive) {
             SoundManager.playShieldBreak();
             spawnExplosion(e.x, e.y, e.type === 'FAKE_NEWS' ? '#EF4444' : '#2563EB');
+            updateQuestProgress('q_enemies', 1);
             setEnemies((all) =>
               all.map((item) => (item.id === e.id ? { ...item, destroyed: true } : item))
             );
@@ -523,10 +716,15 @@ export const useGameEngine = () => {
     score,
     highScore,
     dailyHighScore,
+    combo.multiplier,
+    speechBalloon.visible,
+    speechBalloon.expiresAt,
     obstacles,
     enemies,
     spawnExplosion,
+    spawnPopup,
     triggerExecutiveOrder,
+    updateQuestProgress,
   ]);
 
   return {
@@ -550,9 +748,23 @@ export const useGameEngine = () => {
     powerUps,
     enemies,
     particles,
+    popups,
+    combo,
+    speechBalloon,
+    resumeCountdown,
+    quests,
+    claimQuest,
+    rallyStars,
+    audioSettings,
+    updateAudioSettings: (s: Partial<AudioSettings>) => {
+      SoundManager.updateSettings(s);
+      setAudioSettings(SoundManager.getSettings());
+    },
     scrollOffset,
     screenFlash,
     handleFlap,
+    pauseGame,
+    resumeGame,
     startGame,
     setGameMode,
   };

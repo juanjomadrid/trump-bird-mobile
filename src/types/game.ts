@@ -1,5 +1,5 @@
-export type GameMode = 'MENU' | 'PLAYING' | 'GAMEOVER';
-export type PlayMode = 'STANDARD' | 'DAILY';
+export type GameMode = 'MENU' | 'PLAYING' | 'PAUSED' | 'COUNTDOWN' | 'GAMEOVER';
+export type PlayMode = 'STANDARD' | 'DAILY' | 'ELECTORAL_CAMPAIGN';
 export type DayNightPhase = 'SUNSET' | 'NIGHT' | 'DAWN';
 
 export type BirdSkinId = 'classic' | 'maga' | 'golfer' | 'tuxedo';
@@ -74,6 +74,51 @@ export interface Particle {
   alpha: number;
   life: number;
   maxLife: number;
+}
+
+export interface FloatingPopup {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  color: string;
+  scale: number;
+  alpha: number;
+  life: number;
+  maxLife: number;
+}
+
+export interface SpeechBalloonState {
+  visible: boolean;
+  text: string;
+  expiresAt: number;
+}
+
+export interface ApprovalComboState {
+  current: number;
+  max: number;
+  multiplier: number;
+  isMaxed: boolean;
+}
+
+export interface PresidentialQuest {
+  id: string;
+  title: string;
+  description: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+  rewardStars: number;
+  icon: string;
+}
+
+export interface AudioSettings {
+  soundEnabled: boolean;
+  voiceVolume: number; // 0.0 to 1.0
+  sfxVolume: number;   // 0.0 to 1.0
+  hapticsEnabled: boolean;
+  highContrastEnabled: boolean;
 }
 
 export interface LeaderboardRecord {

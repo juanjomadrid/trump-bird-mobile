@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Rect, Path, Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+import Svg, { Rect, Path, Circle, Defs, LinearGradient, Stop, G, Text as SvgText } from 'react-native-svg';
 import { DayNightPhase } from '../types/game';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -8,14 +8,24 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface BackgroundSkylineProps {
   scrollOffset: number;
   score: number;
+  highScore?: number;
 }
 
-export const BackgroundSkyline: React.FC<BackgroundSkylineProps> = ({ scrollOffset, score }) => {
+export const BackgroundSkyline: React.FC<BackgroundSkylineProps> = ({
+  scrollOffset,
+  score,
+  highScore = 0,
+}) => {
   const bgOffset = (scrollOffset * 0.3) % SCREEN_WIDTH;
   const cloudOffset = (scrollOffset * 0.15) % SCREEN_WIDTH;
 
   // Determine Day/Night Phase based on Score
   const phase: DayNightPhase = score < 15 ? 'SUNSET' : score < 30 ? 'NIGHT' : 'DAWN';
+
+  // Compute Ghost Milestone position (if player has a high score)
+  const milestoneDistance = highScore > 0 ? highScore * 240 : -9999;
+  const milestoneScreenX = milestoneDistance - scrollOffset + SCREEN_WIDTH * 0.25;
+  const showMilestone = highScore > 0 && milestoneScreenX > -100 && milestoneScreenX < SCREEN_WIDTH + 100;
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -64,7 +74,7 @@ export const BackgroundSkyline: React.FC<BackgroundSkylineProps> = ({ scrollOffs
           }
         />
 
-        {/* Night Stars (When in Night Phase) */}
+        {/* Night Stars */}
         {phase === 'NIGHT' && (
           <G>
             <Circle cx={40} cy={80} r={1.5} fill="#FFFFFF" opacity={0.8} />
@@ -131,7 +141,39 @@ export const BackgroundSkyline: React.FC<BackgroundSkylineProps> = ({ scrollOffs
           </G>
         )}
 
-        {/* Ground Grass / Border Line */}
+        {/* 4. Ghost High Score Milestone Line */}
+        {showMilestone && (
+          <G>
+            <Rect
+              x={milestoneScreenX}
+              y={0}
+              width={3}
+              height={SCREEN_HEIGHT - 60}
+              fill="#EC4899"
+              opacity={0.8}
+            />
+            <Rect
+              x={milestoneScreenX - 45}
+              y={80}
+              width={90}
+              height={22}
+              rx={11}
+              fill="#EC4899"
+            />
+            <SvgText
+              x={milestoneScreenX}
+              y={95}
+              fill="#FFFFFF"
+              fontSize="10"
+              fontWeight="900"
+              textAnchor="middle"
+            >
+              BEST: {highScore}
+            </SvgText>
+          </G>
+        )}
+
+        {/* Ground Baseboard */}
         <Rect
           x="0"
           y={SCREEN_HEIGHT - 60}

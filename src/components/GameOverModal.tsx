@@ -20,6 +20,8 @@ interface GameOverModalProps {
   onRetry: () => void;
   onOpenSkins: () => void;
   onOpenLeaderboard: () => void;
+  onOpenShareCard: () => void;
+  onOpenQuests: () => void;
 }
 
 const SATIRICAL_PUNCHLINES = [
@@ -40,6 +42,8 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   onRetry,
   onOpenSkins,
   onOpenLeaderboard,
+  onOpenShareCard,
+  onOpenQuests,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedRank, setSubmittedRank] = useState<number | null>(null);
@@ -130,6 +134,15 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             <Text style={styles.errorText}>⚠️ {submitError}</Text>
           )}
 
+          {/* Share News Card Button */}
+          <TouchableOpacity
+            style={styles.shareNewsBtn}
+            onPress={onOpenShareCard}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.shareNewsBtnText}>📰 BREAKING NEWS SHARE CARD</Text>
+          </TouchableOpacity>
+
           {/* Retry Button */}
           <TouchableOpacity
             style={styles.retryBtn}
@@ -151,11 +164,19 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           {/* Bottom Actions Row */}
           <View style={styles.bottomRow}>
             <TouchableOpacity
-              style={[styles.smallBtn, { marginRight: 8 }]}
+              style={[styles.smallBtn, { marginRight: 6 }]}
               onPress={onOpenSkins}
               activeOpacity={0.8}
             >
               <Text style={styles.smallBtnText}>👔 Wardrobe</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.smallBtn, { marginRight: 6 }]}
+              onPress={onOpenQuests}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.smallBtnText, { color: '#FACC15' }]}>🎖️ Quests</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -184,7 +205,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 380,
     borderRadius: 24,
-    padding: 22,
+    padding: 20,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#334155',
@@ -201,20 +222,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#334155',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   modeTagText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#94A3B8',
   },
   headline: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 10,
-    lineHeight: 18,
+    marginBottom: 8,
+    lineHeight: 17,
   },
   recordBadge: {
     backgroundColor: 'rgba(245, 158, 11, 0.2)',
@@ -223,7 +244,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#F59E0B',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   recordBadgeText: {
     color: '#F59E0B',
@@ -234,25 +255,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     backgroundColor: '#0F172A',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#334155',
-    marginBottom: 14,
+    marginBottom: 10,
     overflow: 'hidden',
   },
   scoreBox: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
   },
   scoreBoxLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#94A3B8',
     marginBottom: 2,
   },
   scoreBoxValue: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
     color: '#F8FAFC',
   },
@@ -260,16 +281,30 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   btnGradient: {
-    paddingVertical: 11,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  shareNewsBtn: {
+    width: '100%',
+    backgroundColor: '#0284C7',
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  shareNewsBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -281,7 +316,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#10B981',
-    marginBottom: 8,
+    marginBottom: 6,
     alignItems: 'center',
   },
   submittedSuccessText: {
@@ -292,40 +327,39 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#F87171',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
   },
   retryBtn: {
     width: '100%',
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 8,
   },
   retryBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
   bottomRow: {
     flexDirection: 'row',
     width: '100%',
-    marginTop: 2,
   },
   smallBtn: {
     flex: 1,
     backgroundColor: '#1E293B',
-    paddingVertical: 9,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#334155',
   },
   smallBtnText: {
     color: '#F8FAFC',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
   },
 });
