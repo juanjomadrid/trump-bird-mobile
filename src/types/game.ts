@@ -2,13 +2,14 @@ export type GameMode = 'MENU' | 'PLAYING' | 'PAUSED' | 'COUNTDOWN' | 'GAMEOVER';
 export type PlayMode = 'STANDARD' | 'DAILY' | 'ELECTORAL_CAMPAIGN';
 export type DayNightPhase = 'SUNSET' | 'NIGHT' | 'DAWN';
 
-export type BirdSkinId = 'classic' | 'maga' | 'golfer' | 'tuxedo';
+export type BirdSkinId = 'classic' | 'maga' | 'golfer' | 'tuxedo' | 'airforceone';
 
 export interface SkinConfig {
   id: BirdSkinId;
   name: string;
   subtitle: string;
   unlockScore: number;
+  coinPrice: number;
   badge: string;
   themeColor: string;
 }
@@ -36,6 +37,7 @@ export interface WallObstacle {
   passed: boolean;
   destroyedTop?: boolean;
   destroyedBottom?: boolean;
+  hasClimber?: boolean;
 }
 
 export type PowerUpType = 'IRON_DOME' | 'EXECUTIVE_ORDER' | 'GOLDEN_MAGNET';
@@ -50,6 +52,27 @@ export interface PowerUpItem {
   pulseScale: number;
 }
 
+export interface CoinItem {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  collected: boolean;
+  pulseScale: number;
+  value: number;
+}
+
+export interface WatermelonProjectile {
+  id: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  rotation: number;
+  destroyed: boolean;
+}
+
 export interface FloatingEnemy {
   id: string;
   x: number;
@@ -57,9 +80,10 @@ export interface FloatingEnemy {
   baseY: number;
   vy: number;
   floatOffset: number;
-  type: 'FAKE_NEWS' | 'DEMOCRAT_DONKEY';
+  type: 'TURBAN_SHOOTER';
   width: number;
   height: number;
+  shootCooldown: number;
   destroyed: boolean;
 }
 
@@ -126,4 +150,5 @@ export interface LeaderboardRecord {
   player_name: string;
   score: number;
   created_at: string;
+  mode?: 'STANDARD' | 'DAILY';
 }

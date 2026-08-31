@@ -14,6 +14,8 @@ import { BackgroundSkyline } from './src/components/BackgroundSkyline';
 import { DonBirdSvg } from './src/components/DonBirdSvg';
 import { WallObstacleSvg } from './src/components/WallObstacleSvg';
 import { PowerUpSvg } from './src/components/PowerUpSvg';
+import { CoinSvg } from './src/components/CoinSvg';
+import { WatermelonProjectileSvg } from './src/components/WatermelonProjectileSvg';
 import { EnemySvg } from './src/components/EnemySvg';
 import { StartMenuModal } from './src/components/StartMenuModal';
 import { GameOverModal } from './src/components/GameOverModal';
@@ -40,9 +42,15 @@ export default function App() {
     setPlayerName,
     selectedSkin,
     setSelectedSkin,
+    unlockedSkins,
+    buySkin,
+    coins,
+    coinsEarnedThisRun,
     bird,
     obstacles,
     powerUps,
+    spawnedCoins,
+    watermelonProjectiles,
     enemies,
     particles,
     popups,
@@ -69,6 +77,15 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
 
+  const handleQuitToMenu = () => {
+    setShowSkins(false);
+    setShowLeaderboard(false);
+    setShowQuests(false);
+    setShowSettings(false);
+    setShowShareCard(false);
+    setGameMode('MENU');
+  };
+
   const toggleSound = () => {
     updateAudioSettings({ soundEnabled: !audioSettings.soundEnabled });
   };
@@ -93,7 +110,7 @@ export default function App() {
               <View style={[StyleSheet.absoluteFill, { backgroundColor: screenFlash, zIndex: 8 }]} />
             )}
 
-            {/* 3. Obstacles (The Wall & Microphones) */}
+            {/* 3. Obstacles (The Wall with 3D brick relief, Safety lights & Mexican Climbers) */}
             {obstacles.map((w) => {
               const bottomY = GROUND_Y - w.bottomHeight;
               return (
@@ -119,7 +136,7 @@ export default function App() {
                     />
                   </View>
 
-                  {/* Bottom Wall */}
+                  {/* Bottom Wall with optional Mexican Climber */}
                   <View
                     style={[
                       styles.entityAbsolute,
@@ -137,6 +154,7 @@ export default function App() {
                       height={w.bottomHeight}
                       isTop={false}
                       destroyed={w.destroyedBottom}
+                      hasClimber={w.hasClimber}
                     />
                   </View>
                 </React.Fragment>
@@ -159,7 +177,39 @@ export default function App() {
               </View>
             ))}
 
-            {/* 5. Floating Enemies */}
+            {/* 5. Collectible Golden Presidential Coins */}
+            {spawnedCoins.map((c) => (
+              <View
+                key={c.id}
+                style={[
+                  styles.entityAbsolute,
+                  {
+                    left: c.x - c.radius,
+                    top: c.y - c.radius,
+                  },
+                ]}
+              >
+                <CoinSvg size={c.radius * 2} pulseScale={c.pulseScale} />
+              </View>
+            ))}
+
+            {/* 6. Flying Watermelon Projectiles */}
+            {watermelonProjectiles.map((m) => (
+              <View
+                key={m.id}
+                style={[
+                  styles.entityAbsolute,
+                  {
+                    left: m.x - m.radius,
+                    top: m.y - m.radius,
+                  },
+                ]}
+              >
+                <WatermelonProjectileSvg size={m.radius * 2} rotation={m.rotation} />
+              </View>
+            ))}
+
+            {/* 7. Floating Turban Enemies */}
             {enemies.map((e) => (
               <View
                 key={e.id}
@@ -175,7 +225,7 @@ export default function App() {
               </View>
             ))}
 
-            {/* 6. Don Bird Protagonist */}
+            {/* 8. Don Bird Protagonist */}
             <View
               style={[
                 styles.entityAbsolute,
@@ -194,7 +244,7 @@ export default function App() {
               />
             </View>
 
-            {/* 7. Comic Visual Speech Balloon Subtitles */}
+            {/* 9. Comic Visual Speech Balloon Subtitles */}
             <SpeechBalloonSvg
               text={speechBalloon.text}
               visible={speechBalloon.visible}
@@ -202,7 +252,7 @@ export default function App() {
               y={bird.y}
             />
 
-            {/* 8. Particle Explosions */}
+            {/* 10. Particle Explosions */}
             {particles.map((pt) => (
               <View
                 key={pt.id}
@@ -221,12 +271,12 @@ export default function App() {
               />
             ))}
 
-            {/* 9. Floating Score & Status Popups */}
+            {/* 11. Floating Score & Status Popups */}
             <FloatingPopupsOverlay popups={popups} />
           </View>
         </TouchableWithoutFeedback>
 
-        {/* 10. In-Game HUD Header (Rendered on top with independent touch handlers) */}
+        {/* 12. In-Game HUD Header */}
         {(gameMode === 'PLAYING' || gameMode === 'PAUSED' || gameMode === 'COUNTDOWN') && (
           <View style={styles.hudOverlay}>
             {/* Ratings Score & Combo Multiplier Pill */}
@@ -248,6 +298,11 @@ export default function App() {
                   ]}
                 />
               </View>
+            </View>
+
+            {/* In-Game Coins Badge */}
+            <View style={styles.inGameCoinsBadge}>
+              <Text style={styles.inGameCoinsText}>🪙 {coins}</Text>
             </View>
 
             {/* Active Power-Ups Timers */}
@@ -321,12 +376,13 @@ export default function App() {
 
       {/* Start Menu Modal */}
       <StartMenuModal
-        visible={gameMode === 'MENU'}
+        visible={gameMode === 'MENU' && !showSkins && !showLeaderboard && !showQuests && !showSettings}
         playerName={playerName}
         onPlayerNameChange={setPlayerName}
         highScore={highScore}
         dailyHighScore={dailyHighScore}
         rallyStars={rallyStars}
+        coins={coins}
         selectedSkin={selectedSkin}
         onStartGame={startGame}
         onOpenSkins={() => setShowSkins(true)}
@@ -341,17 +397,19 @@ export default function App() {
         countdown={resumeCountdown}
         onResume={resumeGame}
         onRestart={() => startGame(playMode)}
-        onQuitToMenu={() => setGameMode('MENU')}
+        onQuitToMenu={handleQuitToMenu}
       />
 
-      {/* Game Over Modal */}
+      {/* Game Over Modal with Return to Menu */}
       <GameOverModal
-        visible={gameMode === 'GAMEOVER'}
+        visible={gameMode === 'GAMEOVER' && !showSkins && !showLeaderboard && !showShareCard && !showQuests}
         score={score}
         highScore={highScore}
+        coinsEarned={coinsEarnedThisRun}
         playMode={playMode}
         playerName={playerName}
         onRetry={() => startGame(playMode)}
+        onQuitToMenu={handleQuitToMenu}
         onOpenSkins={() => setShowSkins(true)}
         onOpenLeaderboard={() => setShowLeaderboard(true)}
         onOpenShareCard={() => setShowShareCard(true)}
@@ -368,12 +426,15 @@ export default function App() {
         onClose={() => setShowShareCard(false)}
       />
 
-      {/* Skins Wardrobe Modal */}
+      {/* Skins Wardrobe Modal with Coins Economy */}
       <SkinsModal
         visible={showSkins}
         selectedSkin={selectedSkin}
         highScore={highScore}
+        coins={coins}
+        unlockedSkins={unlockedSkins}
         onSelectSkin={setSelectedSkin}
+        onBuySkin={buySkin}
         onClose={() => setShowSkins(false)}
       />
 
@@ -394,7 +455,7 @@ export default function App() {
         onClose={() => setShowSettings(false)}
       />
 
-      {/* Supabase Global Leaderboard Modal */}
+      {/* Supabase Global Leaderboard Modal with Dual Tabs */}
       <LeaderboardModal
         visible={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
@@ -472,6 +533,19 @@ const styles = StyleSheet.create({
   },
   comboFill: {
     height: '100%',
+  },
+  inGameCoinsBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  inGameCoinsText: {
+    color: '#FACC15',
+    fontSize: 12,
+    fontWeight: '900',
   },
   activePowerUpsRow: {
     flexDirection: 'row',

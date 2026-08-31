@@ -24,14 +24,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   visible,
   onClose,
 }) => {
+  const [activeTab, setActiveTab] = useState<'STANDARD' | 'DAILY'>('STANDARD');
   const [records, setRecords] = useState<LeaderboardRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (mode: 'STANDARD' | 'DAILY') => {
     setErrorMessage(null);
-    const { data, error } = await fetchTopLeaderboard();
+    const { data, error } = await fetchTopLeaderboard(mode);
     if (error) {
       setErrorMessage(error);
     } else {
@@ -44,13 +45,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   useEffect(() => {
     if (visible) {
       setLoading(true);
-      loadData();
+      loadData(activeTab);
     }
-  }, [visible]);
+  }, [visible, activeTab]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadData();
+    loadData(activeTab);
   };
 
   return (
@@ -62,28 +63,77 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>🏆 OFFICIAL GLOBAL TOP 20</Text>
-            <Text style={styles.subtitle}>CERTIFIED RATINGS & VOTES</Text>
+            <Text style={styles.title}>🏆 OFFICIAL LEADERBOARD</Text>
+            <Text style={styles.subtitle}>CERTIFIED RATINGS & BALLOTS</Text>
+          </View>
+
+          {/* Mode Switcher Tabs */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === 'STANDARD' && styles.tabButtonActive,
+              ]}
+              onPress={() => setActiveTab('STANDARD')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'STANDARD' && styles.tabTextActive,
+                ]}
+              >
+                🚀 CAMPAIGN
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === 'DAILY' && styles.tabButtonActiveDaily,
+              ]}
+              onPress={() => setActiveTab('DAILY')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'DAILY' && styles.tabTextActiveDaily,
+                ]}
+              >
+                🗓️ DAILY RETO
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* List or Loading */}
           {loading ? (
             <View style={styles.centerContainer}>
               <ActivityIndicator color="#F59E0B" size="large" />
-              <Text style={styles.loadingText}>Counting certified votes...</Text>
+              <Text style={styles.loadingText}>
+                Counting {activeTab === 'DAILY' ? 'Daily Challenge' : 'Campaign'} certified votes...
+              </Text>
             </View>
           ) : errorMessage ? (
             <View style={styles.centerContainer}>
               <Text style={styles.errorIcon}>📡</Text>
               <Text style={styles.errorText}>Could not connect to Supabase: {errorMessage}</Text>
-              <TouchableOpacity style={styles.retryFetchBtn} onPress={loadData}>
+              <TouchableOpacity
+                style={styles.retryFetchBtn}
+                onPress={() => {
+                  setLoading(true);
+                  loadData(activeTab);
+                }}
+              >
                 <Text style={styles.retryFetchText}>Retry Connection</Text>
               </TouchableOpacity>
             </View>
           ) : records.length === 0 ? (
             <View style={styles.centerContainer}>
               <Text style={styles.emptyIcon}>🦅</Text>
-              <Text style={styles.emptyText}>No records yet! Be the first candidate on the board!</Text>
+              <Text style={styles.emptyText}>
+                No certified records in {activeTab === 'DAILY' ? 'Daily Reto' : 'Campaign'} yet!
+              </Text>
             </View>
           ) : (
             <ScrollView
@@ -153,9 +203,9 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    maxHeight: '85%',
+    maxHeight: '88%',
     borderRadius: 24,
-    padding: 20,
+    padding: 18,
     borderWidth: 2,
     borderColor: '#334155',
     shadowColor: '#F59E0B',
@@ -166,34 +216,73 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '900',
     color: '#F8FAFC',
     letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: '#F59E0B',
     letterSpacing: 1.5,
     marginTop: 2,
   },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabButtonActive: {
+    backgroundColor: '#0284C7',
+    shadowColor: '#0284C7',
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+  },
+  tabButtonActiveDaily: {
+    backgroundColor: '#D97706',
+    shadowColor: '#D97706',
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+  },
+  tabText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
+  },
+  tabTextActiveDaily: {
+    color: '#FFFFFF',
+  },
   scrollList: {
-    maxHeight: 380,
-    marginBottom: 14,
+    maxHeight: 360,
+    marginBottom: 12,
   },
   centerContainer: {
-    height: 240,
+    height: 220,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
   loadingText: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     marginTop: 12,
   },
@@ -203,7 +292,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#F87171',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -216,7 +305,7 @@ const styles = StyleSheet.create({
   },
   retryFetchText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   emptyIcon: {
@@ -225,7 +314,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -234,7 +323,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#0F172A',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 12,
     marginBottom: 6,
     borderWidth: 1,
@@ -249,15 +338,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
   },
   rankContainer: {
-    width: 32,
+    width: 30,
     alignItems: 'center',
     marginRight: 6,
   },
   medalEmoji: {
-    fontSize: 20,
+    fontSize: 18,
   },
   rankNumber: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     color: '#94A3B8',
   },
@@ -265,7 +354,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   playerName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: '#F8FAFC',
   },
@@ -273,7 +362,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   playerDate: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#64748B',
     marginTop: 1,
   },
@@ -281,7 +370,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   scoreValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
     color: '#38BDF8',
   },
@@ -302,7 +391,7 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
   },

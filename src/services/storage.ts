@@ -7,6 +7,8 @@ const KEYS = {
   DAILY_HIGH_SCORE: '@trump_bird_daily_high_score',
   DAILY_DATE_KEY: '@trump_bird_daily_date_key',
   SELECTED_SKIN: '@trump_bird_selected_skin',
+  UNLOCKED_SKINS: '@trump_bird_unlocked_skins',
+  COINS: '@trump_bird_coins',
   SOUND_ENABLED: '@trump_bird_sound_enabled',
   AUDIO_SETTINGS: '@trump_bird_audio_settings',
   PRESIDENTIAL_QUESTS: '@trump_bird_presidential_quests',
@@ -35,14 +37,14 @@ const DEFAULT_QUESTS: PresidentialQuest[] = [
   },
   {
     id: 'q_enemies',
-    title: 'Fake News Obliterator',
-    description: 'Destroy 5 Fake News Drones or Podiums',
+    title: 'Watermelon Buster',
+    description: 'Destroy 5 Turban Shooters or Watermelon Slices',
     target: 5,
     progress: 0,
     completed: false,
     claimed: false,
     rewardStars: 75,
-    icon: '💥',
+    icon: '🍉',
   },
   {
     id: 'q_powerups',
@@ -128,6 +130,61 @@ export const StorageService = {
       await AsyncStorage.setItem(KEYS.SELECTED_SKIN, skin);
     } catch (e) {
       console.warn('Failed to save selected skin', e);
+    }
+  },
+
+  getUnlockedSkins: async (): Promise<BirdSkinId[]> => {
+    try {
+      const raw = await AsyncStorage.getItem(KEYS.UNLOCKED_SKINS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      return ['classic'];
+    } catch {
+      return ['classic'];
+    }
+  },
+
+  unlockSkin: async (skinId: BirdSkinId): Promise<BirdSkinId[]> => {
+    try {
+      const current = await StorageService.getUnlockedSkins();
+      if (!current.includes(skinId)) {
+        const next = [...current, skinId];
+        await AsyncStorage.setItem(KEYS.UNLOCKED_SKINS, JSON.stringify(next));
+        return next;
+      }
+      return current;
+    } catch {
+      return ['classic'];
+    }
+  },
+
+  getCoins: async (): Promise<number> => {
+    try {
+      const raw = await AsyncStorage.getItem(KEYS.COINS);
+      return raw ? parseInt(raw, 10) : 50; // Initial complimentary coins
+    } catch {
+      return 50;
+    }
+  },
+
+  setCoins: async (coins: number): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(KEYS.COINS, coins.toString());
+    } catch (e) {
+      console.warn('Failed to save coins', e);
+    }
+  },
+
+  addCoins: async (amount: number): Promise<number> => {
+    try {
+      const current = await StorageService.getCoins();
+      const updated = Math.max(0, current + amount);
+      await StorageService.setCoins(updated);
+      return updated;
+    } catch {
+      return 0;
     }
   },
 

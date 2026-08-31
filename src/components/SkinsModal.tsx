@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BirdSkinId, SkinConfig } from '../types/game';
@@ -15,7 +16,10 @@ interface SkinsModalProps {
   visible: boolean;
   selectedSkin: BirdSkinId;
   highScore: number;
+  coins: number;
+  unlockedSkins: BirdSkinId[];
   onSelectSkin: (skinId: BirdSkinId) => void;
+  onBuySkin: (skinId: BirdSkinId, price: number) => void;
   onClose: () => void;
 }
 
@@ -25,6 +29,7 @@ export const SKINS: SkinConfig[] = [
     name: 'Classic Don',
     subtitle: 'Navy Presidential Suit & Red Power Tie',
     unlockScore: 0,
+    coinPrice: 0,
     badge: 'DEFAULT',
     themeColor: '#3B82F6',
   },
@@ -33,7 +38,8 @@ export const SKINS: SkinConfig[] = [
     name: 'MAGA Patriot',
     subtitle: 'Red MAGA Cap & Stars and Stripes',
     unlockScore: 10,
-    badge: '10+ RATINGS',
+    coinPrice: 40,
+    badge: '10+ RATINGS OR 🪙 40',
     themeColor: '#EF4444',
   },
   {
@@ -41,7 +47,8 @@ export const SKINS: SkinConfig[] = [
     name: 'Palm Beach Golfer',
     subtitle: 'White Sun Visor & Florida Club Polo',
     unlockScore: 25,
-    badge: '25+ RATINGS',
+    coinPrice: 80,
+    badge: '25+ RATINGS OR 🪙 80',
     themeColor: '#EC4899',
   },
   {
@@ -49,8 +56,18 @@ export const SKINS: SkinConfig[] = [
     name: 'Gala Black-Tie',
     subtitle: 'Silk Tuxedo & VIP Gold Sunglasses',
     unlockScore: 50,
-    badge: '50+ RATINGS',
+    coinPrice: 150,
+    badge: '50+ RATINGS OR 🪙 150',
     themeColor: '#F59E0B',
+  },
+  {
+    id: 'airforceone',
+    name: 'Air Force One Commander',
+    subtitle: 'Presidential Supersonic Jet & Aviators',
+    unlockScore: 75,
+    coinPrice: 200,
+    badge: '75+ RATINGS OR 🪙 200',
+    themeColor: '#38BDF8',
   },
 ];
 
@@ -58,7 +75,10 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
   visible,
   selectedSkin,
   highScore,
+  coins,
+  unlockedSkins,
   onSelectSkin,
+  onBuySkin,
   onClose,
 }) => {
   // Live flapping showcase state
@@ -75,6 +95,7 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
   const currentSkinConfig = SKINS.find((s) => s.id === selectedSkin) || SKINS[0];
 
   const getSkinParticlesLabel = (skinId: BirdSkinId) => {
+    if (skinId === 'airforceone') return '✈️ SUPERSONIC JET TRAILS & USAF STARS';
     if (skinId === 'tuxedo') return '💵 $100 CASH BILLS & GOLD SPARKS';
     if (skinId === 'golfer') return '⛳ FLYING GOLF BALLS & FLORIDA LAWN';
     if (skinId === 'maga') return '⭐ RED & BLUE PATRIOT CONFETTI';
@@ -85,10 +106,15 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
         <LinearGradient colors={['#1E293B', '#0F172A']} style={styles.card}>
-          {/* Header */}
+          {/* Header with Balance */}
           <View style={styles.header}>
-            <Text style={styles.title}>👔 DON BIRD WARDROBE</Text>
-            <Text style={styles.subtitle}>UNLOCK PRESIDENTIAL ATTIRE</Text>
+            <View style={styles.headerTitleRow}>
+              <Text style={styles.title}>👔 DON BIRD WARDROBE</Text>
+              <View style={styles.coinBalanceBadge}>
+                <Text style={styles.coinBalanceText}>🪙 {coins}</Text>
+              </View>
+            </View>
+            <Text style={styles.subtitle}>UNLOCK PRESIDENTIAL ATTIRE WITH COINS OR RATINGS</Text>
           </View>
 
           {/* Live Interactive Flapping Showcase */}
@@ -115,26 +141,31 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
 
           <ScrollView style={styles.skinsList} showsVerticalScrollIndicator={false}>
             {SKINS.map((skin) => {
-              const isUnlocked = highScore >= skin.unlockScore;
+              const isUnlockedByScore = highScore >= skin.unlockScore;
+              const isUnlockedByPurchase = unlockedSkins.includes(skin.id);
+              const isUnlocked = isUnlockedByScore || isUnlockedByPurchase;
               const isSelected = selectedSkin === skin.id;
+              const canAfford = coins >= skin.coinPrice;
 
               return (
-                <TouchableOpacity
+                <View
                   key={skin.id}
                   style={[
                     styles.skinCard,
                     isSelected && styles.skinCardSelected,
                     !isUnlocked && styles.skinCardLocked,
                   ]}
-                  onPress={() => {
-                    if (isUnlocked) onSelectSkin(skin.id);
-                  }}
-                  activeOpacity={isUnlocked ? 0.7 : 1}
                 >
                   {/* Skin Avatar Preview */}
-                  <View style={styles.skinAvatar}>
+                  <TouchableOpacity
+                    style={styles.skinAvatar}
+                    onPress={() => {
+                      if (isUnlocked) onSelectSkin(skin.id);
+                    }}
+                    activeOpacity={isUnlocked ? 0.7 : 1}
+                  >
                     <DonBirdSvg size={52} rotation={0} skinId={skin.id} />
-                  </View>
+                  </TouchableOpacity>
 
                   {/* Skin Info */}
                   <View style={styles.skinDetails}>
@@ -142,23 +173,50 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
                       <Text style={[styles.skinName, isSelected && { color: skin.themeColor }]}>
                         {skin.name}
                       </Text>
+
                       {isSelected ? (
                         <View style={[styles.statusBadge, { backgroundColor: '#10B98120', borderColor: '#10B981' }]}>
                           <Text style={[styles.statusBadgeText, { color: '#10B981' }]}>EQUIPPED</Text>
                         </View>
                       ) : isUnlocked ? (
-                        <View style={[styles.statusBadge, { backgroundColor: '#38BDF820', borderColor: '#38BDF8' }]}>
-                          <Text style={[styles.statusBadgeText, { color: '#38BDF8' }]}>READY</Text>
-                        </View>
+                        <TouchableOpacity
+                          style={[styles.statusBadge, { backgroundColor: '#38BDF820', borderColor: '#38BDF8' }]}
+                          onPress={() => onSelectSkin(skin.id)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.statusBadgeText, { color: '#38BDF8' }]}>EQUIP</Text>
+                        </TouchableOpacity>
                       ) : (
-                        <View style={[styles.statusBadge, { backgroundColor: '#EF444420', borderColor: '#EF4444' }]}>
-                          <Text style={[styles.statusBadgeText, { color: '#EF4444' }]}>🔒 {skin.badge}</Text>
-                        </View>
+                        <TouchableOpacity
+                          style={[
+                            styles.buyButton,
+                            canAfford ? styles.buyButtonAfford : styles.buyButtonLocked,
+                          ]}
+                          onPress={() => {
+                            if (canAfford) {
+                              onBuySkin(skin.id, skin.coinPrice);
+                            } else {
+                              Alert.alert(
+                                'Need More Coins',
+                                `You need 🪙 ${skin.coinPrice} coins or a record of ${skin.unlockScore} ratings to unlock ${skin.name}!`
+                              );
+                            }
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.buyButtonText}>
+                            🪙 {skin.coinPrice}
+                          </Text>
+                        </TouchableOpacity>
                       )}
                     </View>
+
                     <Text style={styles.skinSubtitle}>{skin.subtitle}</Text>
+                    {!isUnlocked && (
+                      <Text style={styles.unlockReqText}>🔒 Score: {skin.unlockScore}+ ratings or 🪙 {skin.coinPrice} coins</Text>
+                    )}
                   </View>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </ScrollView>
@@ -199,18 +257,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
   title: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '900',
     color: '#F8FAFC',
     letterSpacing: 0.5,
   },
+  coinBalanceBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  coinBalanceText: {
+    color: '#FACC15',
+    fontWeight: '900',
+    fontSize: 13,
+  },
   subtitle: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
     color: '#38BDF8',
-    letterSpacing: 1.5,
-    marginTop: 2,
+    letterSpacing: 1.0,
+    marginTop: 3,
+    textAlign: 'center',
   },
   showcase: {
     flexDirection: 'row',
@@ -239,12 +317,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1.0,
   },
   showcaseTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
     marginBottom: 4,
   },
   showcaseFX: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
     color: '#FACC15',
   },
@@ -266,7 +344,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(56, 189, 248, 0.12)',
   },
   skinCardLocked: {
-    opacity: 0.55,
+    opacity: 0.75,
   },
   skinAvatar: {
     width: 52,
@@ -285,24 +363,49 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   skinName: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '900',
     color: '#F8FAFC',
   },
   statusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
   },
   statusBadgeText: {
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: '900',
   },
+  buyButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  buyButtonAfford: {
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: '#F59E0B',
+  },
+  buyButtonLocked: {
+    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+    borderColor: '#64748B',
+  },
+  buyButtonText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#FACC15',
+  },
   skinSubtitle: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#94A3B8',
     fontWeight: '600',
+  },
+  unlockReqText: {
+    fontSize: 8.5,
+    color: '#F59E0B',
+    fontWeight: '700',
+    marginTop: 2,
   },
   closeBtn: {
     backgroundColor: '#0284C7',

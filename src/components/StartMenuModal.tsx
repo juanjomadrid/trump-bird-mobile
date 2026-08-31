@@ -18,6 +18,7 @@ interface StartMenuModalProps {
   highScore: number;
   dailyHighScore: number;
   rallyStars: number;
+  coins: number;
   selectedSkin: BirdSkinId;
   onStartGame: (mode: PlayMode) => void;
   onOpenSkins: () => void;
@@ -33,6 +34,7 @@ export const StartMenuModal: React.FC<StartMenuModalProps> = ({
   highScore,
   dailyHighScore,
   rallyStars,
+  coins,
   selectedSkin,
   onStartGame,
   onOpenSkins,
@@ -52,14 +54,15 @@ export const StartMenuModal: React.FC<StartMenuModalProps> = ({
           colors={['#1E293B', '#0F172A']}
           style={styles.card}
         >
-          {/* Top Bar with Slogan & Settings/Stars */}
+          {/* Top Bar with Slogan & Settings/Coins/Stars */}
           <View style={styles.topHeaderRow}>
-            <View style={styles.starsPill}>
-              <Text style={styles.starsText}>⭐ {rallyStars}</Text>
-            </View>
-
-            <View style={styles.sloganBadge}>
-              <Text style={styles.sloganText}>🦅 MAKE ARCADE GREAT AGAIN 🦅</Text>
+            <View style={styles.currencyRow}>
+              <View style={styles.coinsPill}>
+                <Text style={styles.coinsText}>🪙 {coins}</Text>
+              </View>
+              <View style={styles.starsPill}>
+                <Text style={styles.starsText}>⭐ {rallyStars}</Text>
+              </View>
             </View>
 
             <TouchableOpacity style={styles.settingsIconBtn} onPress={onOpenSettings} activeOpacity={0.8}>
@@ -68,52 +71,55 @@ export const StartMenuModal: React.FC<StartMenuModalProps> = ({
           </View>
 
           {/* Game Title */}
-          <Text style={styles.titleMain}>TRUMP BIRD</Text>
-          <Text style={styles.titleSub}>IRON DEFENSE</Text>
-
-          {/* Animated Don Bird Character Preview with Wardrobe Trigger */}
-          <TouchableOpacity
-            style={styles.birdPreviewContainer}
-            onPress={onOpenSkins}
-            activeOpacity={0.8}
-          >
-            <DonBirdSvg size={84} rotation={-8} shieldActive={true} skinId={selectedSkin} />
-            <View style={styles.wardrobePill}>
-              <Text style={styles.wardrobePillText}>👔 CHANGE ATTIRE</Text>
+          <View style={styles.titleContainer}>
+            <View style={styles.sloganBadge}>
+              <Text style={styles.sloganText}>🦅 MAKE ARCADE GREAT AGAIN 🦅</Text>
             </View>
-          </TouchableOpacity>
+            <Text style={styles.titleMain}>TRUMP BIRD</Text>
+            <Text style={styles.titleSub}>IRON DEFENSE</Text>
+          </View>
 
-          {/* Player Nickname Input */}
+          {/* Bird Avatar Preview */}
+          <View style={styles.avatarSection}>
+            <TouchableOpacity onPress={onOpenSkins} activeOpacity={0.8} style={styles.avatarGlow}>
+              <DonBirdSvg size={82} rotation={-5} shieldActive={true} skinId={selectedSkin} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onOpenSkins} style={styles.skinTagBtn} activeOpacity={0.8}>
+              <Text style={styles.skinTagText}>👔 CHANGE ATTIRE</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Candidate Name Input */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>CANDIDATE ALIAS:</Text>
             <TextInput
-              style={styles.input}
+              style={styles.textInput}
               value={playerName}
               onChangeText={onPlayerNameChange}
-              maxLength={20}
-              placeholder="Enter Campaign Name"
+              placeholder="Enter Candidate Name"
               placeholderTextColor="#64748B"
-              autoCapitalize="words"
+              maxLength={20}
+              autoCorrect={false}
             />
           </View>
 
-          {/* Score Badges Row */}
-          <View style={styles.scoreRow}>
-            <View style={styles.scoreBadge}>
-              <Text style={styles.scoreBadgeLabel}>ALL-TIME BEST</Text>
-              <Text style={styles.scoreBadgeVal}>⭐️ {highScore}</Text>
+          {/* Score Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>ALL-TIME BEST</Text>
+              <Text style={styles.statValue}>★ {highScore}</Text>
             </View>
-            <View style={[styles.scoreBadge, { borderColor: '#38BDF850' }]}>
-              <Text style={[styles.scoreBadgeLabel, { color: '#38BDF8' }]}>TODAY ({todayDateStr})</Text>
-              <Text style={[styles.scoreBadgeVal, { color: '#38BDF8' }]}>🗓️ {dailyHighScore}</Text>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>TODAY ({todayDateStr})</Text>
+              <Text style={[styles.statValue, { color: '#38BDF8' }]}>🗓️ {dailyHighScore}</Text>
             </View>
           </View>
 
-          {/* Main Action Buttons */}
-          <View style={styles.buttonStack}>
-            {/* Standard Campaign Start */}
+          {/* Main Play Buttons */}
+          <View style={styles.actionsContainer}>
+            {/* Standard Campaign Mode */}
             <TouchableOpacity
-              style={styles.actionBtn}
+              style={styles.primaryPlayBtn}
               onPress={() => onStartGame('STANDARD')}
               activeOpacity={0.8}
             >
@@ -121,13 +127,13 @@ export const StartMenuModal: React.FC<StartMenuModalProps> = ({
                 colors={['#EF4444', '#B91C1C']}
                 style={styles.btnGradient}
               >
-                <Text style={styles.startBtnText}>🚀 START CAMPAIGN RALLY</Text>
+                <Text style={styles.primaryPlayBtnText}>🚀 START CAMPAIGN RALLY</Text>
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Daily Challenge Start */}
+            {/* Daily Seeded Challenge */}
             <TouchableOpacity
-              style={styles.actionBtn}
+              style={styles.dailyPlayBtn}
               onPress={() => onStartGame('DAILY')}
               activeOpacity={0.8}
             >
@@ -135,36 +141,24 @@ export const StartMenuModal: React.FC<StartMenuModalProps> = ({
                 colors={['#0284C7', '#0369A1']}
                 style={styles.btnGradient}
               >
-                <Text style={styles.dailyBtnText}>🗓️ DAILY RALLY (EQUAL SEED)</Text>
+                <Text style={styles.dailyPlayBtnText}>🗓️ DAILY RALLY (EQUAL SEED)</Text>
               </LinearGradient>
             </TouchableOpacity>
+          </View>
 
-            {/* Bottom Actions: Wardrobe, Quests, Leaderboard */}
-            <View style={styles.bottomRow}>
-              <TouchableOpacity
-                style={[styles.smallBtn, { marginRight: 6 }]}
-                onPress={onOpenSkins}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.smallBtnText}>👔 Wardrobe</Text>
-              </TouchableOpacity>
+          {/* Secondary Buttons Row */}
+          <View style={styles.secondaryRow}>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={onOpenSkins} activeOpacity={0.8}>
+              <Text style={styles.secondaryBtnText}>👔 Wardrobe</Text>
+            </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.smallBtn, { marginRight: 6 }]}
-                onPress={onOpenQuests}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.smallBtnText, { color: '#FACC15' }]}>🎖️ Quests</Text>
-              </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={onOpenQuests} activeOpacity={0.8}>
+              <Text style={[styles.secondaryBtnText, { color: '#FACC15' }]}>🎖️ Quests</Text>
+            </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.smallBtn}
-                onPress={onOpenLeaderboard}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.smallBtnText, { color: '#38BDF8' }]}>🏆 Top 20</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={onOpenLeaderboard} activeOpacity={0.8}>
+              <Text style={[styles.secondaryBtnText, { color: '#38BDF8' }]}>🏆 Top 20</Text>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
       </View>
@@ -175,7 +169,7 @@ export const StartMenuModal: React.FC<StartMenuModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.85)',
+    backgroundColor: 'rgba(2, 6, 23, 0.88)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -184,11 +178,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 380,
     borderRadius: 24,
-    padding: 20,
+    padding: 18,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#334155',
-    shadowColor: '#F59E0B',
+    shadowColor: '#38BDF8',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
@@ -196,79 +190,109 @@ const styles = StyleSheet.create({
   },
   topHeaderRow: {
     flexDirection: 'row',
-    width: '100%',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    width: '100%',
+    marginBottom: 8,
   },
-  starsPill: {
-    backgroundColor: '#0F172A',
+  currencyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coinsPill: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#F59E0B',
+    marginRight: 6,
+  },
+  coinsText: {
+    color: '#FACC15',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  starsPill: {
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#38BDF8',
   },
   starsText: {
-    color: '#FACC15',
-    fontSize: 10,
+    color: '#38BDF8',
+    fontSize: 11,
     fontWeight: '900',
   },
   sloganBadge: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#F59E0B60',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    marginBottom: 4,
   },
   sloganText: {
-    color: '#F59E0B',
     fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    color: '#F59E0B',
+    letterSpacing: 0.6,
   },
   settingsIconBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#0F172A',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#334155',
   },
   settingsIcon: {
-    fontSize: 14,
+    fontSize: 15,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
   },
   titleMain: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
     color: '#F8FAFC',
     letterSpacing: 1.5,
   },
   titleSub: {
-    fontSize: 15,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '800',
     color: '#38BDF8',
     letterSpacing: 3,
-    marginBottom: 6,
   },
-  birdPreviewContainer: {
+  avatarSection: {
     alignItems: 'center',
     marginVertical: 4,
   },
-  wardrobePill: {
+  avatarGlow: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    borderWidth: 1.5,
+    borderColor: '#334155',
+  },
+  skinTagBtn: {
+    marginTop: 4,
     backgroundColor: '#334155',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
-    marginTop: -4,
-    borderWidth: 1,
-    borderColor: '#475569',
   },
-  wardrobePillText: {
-    color: '#F8FAFC',
+  skinTagText: {
+    color: '#E2E8F0',
     fontSize: 9,
     fontWeight: '800',
   },
@@ -277,94 +301,98 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   inputLabel: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
     color: '#94A3B8',
-    marginBottom: 2,
+    marginBottom: 3,
+    letterSpacing: 0.5,
   },
-  input: {
+  textInput: {
     backgroundColor: '#0F172A',
-    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: '#334155',
-    paddingHorizontal: 14,
+    borderRadius: 10,
+    paddingHorizontal: 12,
     paddingVertical: 7,
     color: '#F8FAFC',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
   },
-  scoreRow: {
+  statsRow: {
     flexDirection: 'row',
     width: '100%',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    marginVertical: 6,
   },
-  scoreBadge: {
+  statBox: {
     flex: 1,
     backgroundColor: '#0F172A',
-    paddingVertical: 5,
-    paddingHorizontal: 6,
+    paddingVertical: 7,
     borderRadius: 10,
+    alignItems: 'center',
     marginHorizontal: 3,
     borderWidth: 1,
     borderColor: '#1E293B',
-    alignItems: 'center',
   },
-  scoreBadgeLabel: {
-    fontSize: 8,
+  statLabel: {
+    fontSize: 7.5,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#64748B',
+    marginBottom: 2,
   },
-  scoreBadgeVal: {
-    fontSize: 13,
+  statValue: {
+    fontSize: 14,
     fontWeight: '900',
     color: '#F59E0B',
-    marginTop: 1,
   },
-  buttonStack: {
+  actionsContainer: {
     width: '100%',
+    marginVertical: 4,
   },
-  actionBtn: {
-    width: '100%',
+  primaryPlayBtn: {
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 6,
+  },
+  dailyPlayBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   btnGradient: {
     paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  startBtnText: {
+  primaryPlayBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
-  dailyBtnText: {
+  dailyPlayBtnText: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
-  bottomRow: {
+  secondaryRow: {
     flexDirection: 'row',
     width: '100%',
-    marginTop: 2,
+    marginTop: 8,
   },
-  smallBtn: {
+  secondaryBtn: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0F172A',
     paddingVertical: 8,
     borderRadius: 10,
     alignItems: 'center',
+    marginHorizontal: 3,
     borderWidth: 1,
     borderColor: '#334155',
   },
-  smallBtnText: {
+  secondaryBtnText: {
     color: '#F8FAFC',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
   },
 });

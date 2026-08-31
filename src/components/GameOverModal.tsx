@@ -15,9 +15,11 @@ interface GameOverModalProps {
   visible: boolean;
   score: number;
   highScore: number;
+  coinsEarned?: number;
   playMode: PlayMode;
   playerName: string;
   onRetry: () => void;
+  onQuitToMenu: () => void;
   onOpenSkins: () => void;
   onOpenLeaderboard: () => void;
   onOpenShareCard: () => void;
@@ -37,9 +39,11 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   visible,
   score,
   highScore,
+  coinsEarned = 0,
   playMode,
   playerName,
   onRetry,
+  onQuitToMenu,
   onOpenSkins,
   onOpenLeaderboard,
   onOpenShareCard,
@@ -57,8 +61,8 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const displayName = playMode === 'DAILY' ? `${playerName} [DAILY]` : playerName;
-    const res = await submitScore(displayName, score);
+    const mode = playMode === 'DAILY' ? 'DAILY' : 'STANDARD';
+    const res = await submitScore(playerName, score, mode);
     setIsSubmitting(false);
 
     if (res.success) {
@@ -91,7 +95,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             </View>
           )}
 
-          {/* Scores Panel */}
+          {/* Scores & Coins Panel */}
           <View style={styles.scoreContainer}>
             <View style={styles.scoreBox}>
               <Text style={styles.scoreBoxLabel}>RATINGS</Text>
@@ -101,13 +105,17 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               <Text style={styles.scoreBoxLabel}>BEST RECORD</Text>
               <Text style={[styles.scoreBoxValue, { color: '#F59E0B' }]}>{Math.max(score, highScore)}</Text>
             </View>
+            <View style={[styles.scoreBox, { borderLeftWidth: 1, borderLeftColor: '#334155' }]}>
+              <Text style={styles.scoreBoxLabel}>COINS WON</Text>
+              <Text style={[styles.scoreBoxValue, { color: '#FACC15' }]}>+{coinsEarned} 🪙</Text>
+            </View>
           </View>
 
           {/* Supabase Submit Status / Button */}
           {submittedRank !== null ? (
             <View style={styles.submittedSuccessBox}>
               <Text style={styles.submittedSuccessText}>
-                ✅ Certified! Global Rank #{submittedRank} in Records!
+                ✅ Certified! Rank #{submittedRank} in {playMode === 'DAILY' ? 'Daily Reto' : 'Global Records'}!
               </Text>
             </View>
           ) : (
@@ -161,6 +169,19 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* Return to Menu Button */}
+          <TouchableOpacity
+            style={styles.menuReturnBtn}
+            onPress={() => {
+              setSubmittedRank(null);
+              setSubmitError(null);
+              onQuitToMenu();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuReturnBtnText}>🏛️ RETURN TO WHITE HOUSE MENU</Text>
+          </TouchableOpacity>
+
           {/* Bottom Actions Row */}
           <View style={styles.bottomRow}>
             <TouchableOpacity
@@ -203,9 +224,9 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 390,
     borderRadius: 24,
-    padding: 20,
+    padding: 18,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#334155',
@@ -230,12 +251,12 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   headline: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '900',
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 17,
+    marginBottom: 6,
+    lineHeight: 16,
   },
   recordBadge: {
     backgroundColor: 'rgba(245, 158, 11, 0.2)',
@@ -244,11 +265,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#F59E0B',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   recordBadgeText: {
     color: '#F59E0B',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '900',
   },
   scoreContainer: {
@@ -258,22 +279,22 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#334155',
-    marginBottom: 10,
+    marginBottom: 8,
     overflow: 'hidden',
   },
   scoreBox: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
   },
   scoreBoxLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '800',
     color: '#94A3B8',
     marginBottom: 2,
   },
   scoreBoxValue: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '900',
     color: '#F8FAFC',
   },
@@ -284,35 +305,35 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   btnGradient: {
-    paddingVertical: 10,
+    paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitBtnText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   shareNewsBtn: {
     width: '100%',
     backgroundColor: '#0284C7',
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 6,
   },
   shareNewsBtnText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   submittedSuccessBox: {
     width: '100%',
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#10B981',
@@ -321,13 +342,13 @@ const styles = StyleSheet.create({
   },
   submittedSuccessText: {
     color: '#10B981',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     textAlign: 'center',
   },
   errorText: {
     color: '#F87171',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
     marginBottom: 6,
     textAlign: 'center',
@@ -336,13 +357,29 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   retryBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '900',
     letterSpacing: 0.8,
+  },
+  menuReturnBtn: {
+    width: '100%',
+    backgroundColor: '#1E293B',
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#475569',
+    marginBottom: 8,
+  },
+  menuReturnBtnText: {
+    color: '#E2E8F0',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -350,7 +387,7 @@ const styles = StyleSheet.create({
   },
   smallBtn: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0F172A',
     paddingVertical: 8,
     borderRadius: 10,
     alignItems: 'center',
@@ -359,7 +396,7 @@ const styles = StyleSheet.create({
   },
   smallBtnText: {
     color: '#F8FAFC',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
   },
 });

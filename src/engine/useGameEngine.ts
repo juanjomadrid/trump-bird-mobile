@@ -8,6 +8,8 @@ import {
   WallObstacle,
   PowerUpItem,
   PowerUpType,
+  CoinItem,
+  WatermelonProjectile,
   FloatingEnemy,
   Particle,
   FloatingPopup,
@@ -26,7 +28,7 @@ const BASE_GRAVITY = 0.38;
 const BASE_JUMP_VELOCITY = -7.4;
 const BASE_SCROLL_SPEED = 2.7;
 const WALL_WIDTH = 64;
-const WALL_GAP = 152;
+const WALL_GAP = 185; // Expanded for accessible, fluid passage
 const BIRD_SIZE = 52;
 const GROUND_Y = SCREEN_HEIGHT - 60;
 const CEILING_Y = 20;
@@ -56,6 +58,9 @@ export const useGameEngine = () => {
   const [dailyHighScore, setDailyHighScore] = useState(0);
   const [playerName, setPlayerName] = useState('Don The Great');
   const [selectedSkin, setSelectedSkin] = useState<BirdSkinId>('classic');
+  const [unlockedSkins, setUnlockedSkins] = useState<BirdSkinId[]>(['classic']);
+  const [coins, setCoins] = useState(50);
+  const [coinsEarnedThisRun, setCoinsEarnedThisRun] = useState(0);
   const [screenFlash, setScreenFlash] = useState<string | null>(null);
   const [rallyStars, setRallyStars] = useState(100);
   const [quests, setQuests] = useState<PresidentialQuest[]>([]);
@@ -98,6 +103,8 @@ export const useGameEngine = () => {
 
   const [obstacles, setObstacles] = useState<WallObstacle[]>([]);
   const [powerUps, setPowerUps] = useState<PowerUpItem[]>([]);
+  const [spawnedCoins, setSpawnedCoins] = useState<CoinItem[]>([]);
+  const [watermelonProjectiles, setWatermelonProjectiles] = useState<WatermelonProjectile[]>([]);
   const [enemies, setEnemies] = useState<FloatingEnemy[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -114,6 +121,8 @@ export const useGameEngine = () => {
     StorageService.getPlayerName().then(setPlayerName);
     StorageService.getHighScore().then(setHighScore);
     StorageService.getSelectedSkin().then(setSelectedSkin);
+    StorageService.getUnlockedSkins().then(setUnlockedSkins);
+    StorageService.getCoins().then(setCoins);
     StorageService.getDailyHighScore(getTodayKey()).then(setDailyHighScore);
     StorageService.getQuests().then(setQuests);
     StorageService.getRallyStars().then(setRallyStars);
@@ -171,6 +180,19 @@ export const useGameEngine = () => {
       return next;
     });
   }, []);
+
+  // Buy skin with coins
+  const buySkin = useCallback((skinId: BirdSkinId, price: number) => {
+    if (coins >= price) {
+      const newCoins = coins - price;
+      setCoins(newCoins);
+      StorageService.setCoins(newCoins);
+      StorageService.unlockSkin(skinId).then(setUnlockedSkins);
+      setSelectedSkin(skinId);
+      StorageService.setSelectedSkin(skinId);
+      SoundManager.speakSatiricalLine("Tremendous purchase! Looks incredible on me!", true);
+    }
+  }, [coins]);
 
   // Spawn Floating Popup
   const spawnPopup = useCallback((x: number, y: number, text: string, color: string = '#FACC15') => {
@@ -262,7 +284,7 @@ export const useGameEngine = () => {
     spawnPopup(bird.x, bird.y - 30, '📜 EXECUTIVE BLAST! +5', '#FACC15');
     updateQuestProgress('q_powerups', 1);
 
-    // Obliterate all on-screen obstacles and enemies
+    // Obliterate all on-screen obstacles, watermelon projectiles and enemies
     setObstacles((prev) =>
       prev.map((w) => {
         spawnExplosion(w.x + w.width / 2, w.topHeight, '#FACC15', 8);
@@ -272,6 +294,13 @@ export const useGameEngine = () => {
           destroyedTop: true,
           destroyedBottom: true,
         };
+      })
+    );
+
+    setWatermelonProjectiles((prev) =>
+      prev.map((p) => {
+        spawnExplosion(p.x, p.y, '#DC2626', 8);
+        return { ...p, destroyed: true };
       })
     );
 
@@ -309,11 +338,14 @@ export const useGameEngine = () => {
     });
     setObstacles([]);
     setPowerUps([]);
+    setSpawnedCoins([]);
+    setWatermelonProjectiles([]);
     setEnemies([]);
     setParticles([]);
     setPopups([]);
     setCombo({ current: 0, max: 5, multiplier: 1, isMaxed: false });
     setScore(0);
+    setCoinsEarnedThisRun(0);
     setScrollOffset(0);
     setScreenFlash(null);
     setResumeCountdown(null);
@@ -341,18 +373,18 @@ export const useGameEngine = () => {
       lastTimeRef.current = time;
 
       const getRandom = () => (dailyRngRef.current ? dailyRngRef.current() : Math.random());
-      const currentSpeed = (BASE_SCROLL_SPEED + Math.min(score * 0.04, 2.0)) * dtFactor;
+      const currentSpeed = (BASE_SCROLL_SPEED + Math.min(score * 0.035, 1.8)) * dtFactor;
 
-      // 1. Update Scroll & Obstacle Spawning
+      // 1. Update Scroll & Obstacle / Entity Spawning
       setScrollOffset((prev) => prev + currentSpeed);
       totalDistanceRef.current += currentSpeed;
 
       if (totalDistanceRef.current >= nextSpawnDistanceRef.current) {
-        nextSpawnDistanceRef.current = totalDistanceRef.current + 220 + getRandom() * 60;
+        nextSpawnDistanceRef.current = totalDistanceRef.current + 230 + getRandom() * 60;
 
         const availableHeight = GROUND_Y - CEILING_Y - WALL_GAP;
-        const minTop = 60;
-        const maxTop = availableHeight - 60;
+        const minTop = 50;
+        const maxTop = availableHeight - 50;
         const topH = Math.floor(minTop + getRandom() * (maxTop - minTop));
         const bottomH = Math.max(0, availableHeight - topH);
 
@@ -364,16 +396,17 @@ export const useGameEngine = () => {
           gap: WALL_GAP,
           width: WALL_WIDTH,
           passed: false,
+          hasClimber: getRandom() < 0.40, // 40% chance of Mexican climber on bottom wall
         };
 
         setObstacles((prev) => [...prev, newWall]);
 
-        // 35% chance to spawn a PowerUp
+        // 30% chance to spawn a PowerUp
         const pRand = getRandom();
-        if (pRand < 0.35) {
+        if (pRand < 0.30) {
           const powerUpY = topH + WALL_GAP / 2 + (getRandom() * 40 - 20);
           const type: PowerUpType =
-            pRand < 0.15 ? 'IRON_DOME' : pRand < 0.25 ? 'EXECUTIVE_ORDER' : 'GOLDEN_MAGNET';
+            pRand < 0.12 ? 'IRON_DOME' : pRand < 0.22 ? 'EXECUTIVE_ORDER' : 'GOLDEN_MAGNET';
 
           setPowerUps((prev) => [
             ...prev,
@@ -389,21 +422,41 @@ export const useGameEngine = () => {
           ]);
         }
 
-        // 35% chance to spawn a Floating Enemy
-        if (getRandom() < 0.35) {
-          const enemyY = topH + WALL_GAP / 2 + (getRandom() * 50 - 25);
+        // 60% chance to spawn Collectible Golden Coins in safe patterns
+        if (getRandom() < 0.60) {
+          const coinCount = 1 + Math.floor(getRandom() * 3);
+          const newCoins: CoinItem[] = [];
+          for (let cIdx = 0; cIdx < coinCount; cIdx++) {
+            const coinY = topH + (WALL_GAP / (coinCount + 1)) * (cIdx + 1);
+            newCoins.push({
+              id: `coin_${Date.now()}_${cIdx}_${getRandom()}`,
+              x: SCREEN_WIDTH + 50 + cIdx * 32,
+              y: coinY,
+              radius: 14,
+              collected: false,
+              pulseScale: 1.0,
+              value: 1,
+            });
+          }
+          setSpawnedCoins((prev) => [...prev, ...newCoins]);
+        }
+
+        // 30% chance to spawn a Turban Shooter Enemy on the left/mid screen
+        if (getRandom() < 0.30) {
+          const enemyY = Math.max(70, Math.min(GROUND_Y - 90, topH + WALL_GAP / 2 + (getRandom() * 80 - 40)));
           setEnemies((prev) => [
             ...prev,
             {
               id: `en_${Date.now()}_${getRandom()}`,
-              x: SCREEN_WIDTH + 140,
+              x: Math.max(30, SCREEN_WIDTH * 0.08 + getRandom() * 40),
               y: enemyY,
               baseY: enemyY,
-              vy: 0.8,
+              vy: 0.6,
               floatOffset: getRandom() * Math.PI * 2,
-              type: getRandom() > 0.5 ? 'FAKE_NEWS' : 'DEMOCRAT_DONKEY',
-              width: 36,
-              height: 36,
+              type: 'TURBAN_SHOOTER',
+              width: 44,
+              height: 44,
+              shootCooldown: 90 + Math.floor(getRandom() * 80),
               destroyed: false,
             },
           ]);
@@ -516,8 +569,8 @@ export const useGameEngine = () => {
               const dx = bird.x - p.x;
               const dy = bird.y - p.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < 280 && dist > 1) {
-                const pullStrength = 6.4 * dtFactor;
+              if (dist < 320 && dist > 1) {
+                const pullStrength = 7.0 * dtFactor;
                 nextX += (dx / dist) * pullStrength;
                 nextY += (dy / dist) * pullStrength;
               }
@@ -533,22 +586,94 @@ export const useGameEngine = () => {
           .filter((p) => p.x > -50 && !p.collected)
       );
 
-      // 5. Update Floating Enemies
+      // 5. Update Golden Coins with Magnet Attraction & Rotation Pulse
+      setSpawnedCoins((prev) =>
+        prev
+          .map((c) => {
+            let nextX = c.x - currentSpeed;
+            let nextY = c.y;
+
+            if (bird.magnetActive && !c.collected) {
+              const dx = bird.x - c.x;
+              const dy = bird.y - c.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 320 && dist > 1) {
+                const pullStrength = 8.5 * dtFactor;
+                nextX += (dx / dist) * pullStrength;
+                nextY += (dy / dist) * pullStrength;
+              }
+            }
+
+            return {
+              ...c,
+              x: nextX,
+              y: nextY,
+              pulseScale: 1.0 + Math.sin(time * 0.01 + c.y) * 0.1,
+            };
+          })
+          .filter((c) => c.x > -50 && !c.collected)
+      );
+
+      // 6. Update Turban Shooter Enemies and Watermelon Launch with Fair Safe-Gap Algorithm
       setEnemies((prev) =>
         prev
           .map((e) => {
-            const nextX = e.x - currentSpeed * 1.15;
-            const nextY = e.baseY + Math.sin(time * 0.004 + e.floatOffset) * 20;
+            const nextY = e.baseY + Math.sin(time * 0.004 + e.floatOffset) * 15;
+            let nextCooldown = e.shootCooldown - 1 * dtFactor;
+
+            if (nextCooldown <= 0 && !e.destroyed) {
+              nextCooldown = 130 + getRandom() * 80;
+
+              // FAIR GAP CHECK: Calculate safe trajectory Y that NEVER blocks wall gap at passage time
+              const activeWallNearBird = obstacles.find((w) => w.x > bird.x - 60 && w.x < bird.x + 200);
+
+              let targetProjY = e.y;
+              if (activeWallNearBird) {
+                // Aim watermelon strictly at upper or lower solid wall areas away from the open gap
+                const shootHigh = getRandom() > 0.5;
+                targetProjY = shootHigh
+                  ? Math.max(30, activeWallNearBird.topHeight - 35)
+                  : Math.min(GROUND_Y - 30, GROUND_Y - activeWallNearBird.bottomHeight + 35);
+              }
+
+              const projSpeed = (4.8 + getRandom() * 1.5) * dtFactor;
+              setWatermelonProjectiles((all) => [
+                ...all,
+                {
+                  id: `melon_${Date.now()}_${getRandom()}`,
+                  x: e.x + e.width / 2,
+                  y: targetProjY,
+                  vx: projSpeed,
+                  vy: (getRandom() - 0.5) * 0.5,
+                  radius: 14,
+                  rotation: 0,
+                  destroyed: false,
+                },
+              ]);
+            }
+
             return {
               ...e,
-              x: nextX,
               y: nextY,
+              shootCooldown: nextCooldown,
             };
           })
-          .filter((e) => e.x > -50 && !e.destroyed)
+          .filter((e) => !e.destroyed)
       );
 
-      // 6. Update Floating Popups
+      // 7. Update Watermelon Projectiles
+      setWatermelonProjectiles((prev) =>
+        prev
+          .map((m) => ({
+            ...m,
+            x: m.x + m.vx,
+            y: m.y + m.vy,
+            rotation: m.rotation + 8 * dtFactor,
+          }))
+          .filter((m) => m.x < SCREEN_WIDTH + 60 && !m.destroyed)
+      );
+
+      // 8. Update Floating Popups
       setPopups((prev) =>
         prev
           .map((pop) => ({
@@ -561,12 +686,12 @@ export const useGameEngine = () => {
           .filter((pop) => pop.life < pop.maxLife)
       );
 
-      // 7. Update Speech Balloon Expiration
+      // 9. Update Speech Balloon Expiration
       if (speechBalloon.visible && Date.now() > speechBalloon.expiresAt) {
         setSpeechBalloon((prev) => ({ ...prev, visible: false }));
       }
 
-      // 8. Update Particles
+      // 10. Update Particles
       setParticles((prev) =>
         prev
           .map((p) => ({
@@ -579,7 +704,7 @@ export const useGameEngine = () => {
           .filter((p) => p.life < p.maxLife)
       );
 
-      // 9. Hitbox Collision Checks
+      // 11. Hitbox Collision Checks
       const birdBox = {
         left: bird.x - BIRD_SIZE * 0.38,
         right: bird.x + BIRD_SIZE * 0.38,
@@ -594,6 +719,30 @@ export const useGameEngine = () => {
         setGameMode('GAMEOVER');
         return;
       }
+
+      // Check Coin Collections
+      setSpawnedCoins((prev) =>
+        prev.map((c) => {
+          if (c.collected) return c;
+          const dx = bird.x - c.x;
+          const dy = bird.y - c.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < BIRD_SIZE * 0.5 + c.radius) {
+            SoundManager.playCoin();
+            spawnExplosion(c.x, c.y, '#FACC15', 6);
+            spawnPopup(c.x, c.y - 15, '+1 🪙', '#FACC15');
+            setCoins((curr) => {
+              const updated = curr + 1;
+              StorageService.addCoins(1);
+              return updated;
+            });
+            setCoinsEarnedThisRun((n) => n + 1);
+            return { ...c, collected: true };
+          }
+          return c;
+        })
+      );
 
       // Check PowerUp Collection
       setPowerUps((prev) =>
@@ -634,7 +783,32 @@ export const useGameEngine = () => {
         })
       );
 
-      // Check Wall Collisions
+      // Check Watermelon Projectile Collisions
+      watermelonProjectiles.forEach((m) => {
+        if (m.destroyed) return;
+        const dx = bird.x - m.x;
+        const dy = bird.y - m.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < BIRD_SIZE * 0.42 + m.radius) {
+          if (bird.shieldActive) {
+            SoundManager.playShieldBreak();
+            spawnExplosion(m.x, m.y, '#DC2626', 10);
+            spawnPopup(m.x, m.y - 20, '🍉 SLICE SMASHED! +2', '#10B981');
+            updateQuestProgress('q_enemies', 1);
+            setWatermelonProjectiles((all) =>
+              all.map((item) => (item.id === m.id ? { ...item, destroyed: true } : item))
+            );
+            setScore((s) => s + 2);
+          } else {
+            SoundManager.playCrash();
+            spawnExplosion(bird.x, bird.y, '#EF4444');
+            setGameMode('GAMEOVER');
+          }
+        }
+      });
+
+      // Check Wall Collisions (Climbers on the wall have NO collision)
       obstacles.forEach((w) => {
         const wallLeft = w.x;
         const wallRight = w.x + w.width;
@@ -673,30 +847,6 @@ export const useGameEngine = () => {
         }
       });
 
-      // Check Enemy Collisions
-      enemies.forEach((e) => {
-        if (e.destroyed) return;
-        const dx = bird.x - e.x;
-        const dy = bird.y - e.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < BIRD_SIZE * 0.45 + e.width * 0.45) {
-          if (bird.shieldActive) {
-            SoundManager.playShieldBreak();
-            spawnExplosion(e.x, e.y, e.type === 'FAKE_NEWS' ? '#EF4444' : '#2563EB');
-            updateQuestProgress('q_enemies', 1);
-            setEnemies((all) =>
-              all.map((item) => (item.id === e.id ? { ...item, destroyed: true } : item))
-            );
-            setScore((s) => s + 3);
-          } else {
-            SoundManager.playCrash();
-            spawnExplosion(bird.x, bird.y, '#EF4444');
-            setGameMode('GAMEOVER');
-          }
-        }
-      });
-
       animFrameRef.current = requestAnimationFrame(loop);
     };
 
@@ -721,6 +871,7 @@ export const useGameEngine = () => {
     speechBalloon.expiresAt,
     obstacles,
     enemies,
+    watermelonProjectiles,
     spawnExplosion,
     spawnPopup,
     triggerExecutiveOrder,
@@ -743,9 +894,15 @@ export const useGameEngine = () => {
       setSelectedSkin(skin);
       StorageService.setSelectedSkin(skin);
     },
+    unlockedSkins,
+    buySkin,
+    coins,
+    coinsEarnedThisRun,
     bird,
     obstacles,
     powerUps,
+    spawnedCoins,
+    watermelonProjectiles,
     enemies,
     particles,
     popups,

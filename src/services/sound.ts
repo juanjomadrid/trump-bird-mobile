@@ -95,6 +95,14 @@ class SoundEffectsManager {
     } catch {}
   }
 
+  public playCoin() {
+    if (this.settings.hapticsEnabled) {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+  }
+
   public playScore(currentScore: number) {
     if (this.settings.hapticsEnabled) {
       try {

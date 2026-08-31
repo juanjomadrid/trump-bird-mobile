@@ -16,23 +16,40 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 /**
- * Fetches the Top 20 global leaderboard scores.
+ * Fetches the Top 20 global leaderboard scores for either Campaign or Daily Challenge.
  */
-export const fetchTopLeaderboard = async (): Promise<{ data: LeaderboardRecord[] | null; error: string | null }> => {
+export const fetchTopLeaderboard = async (
+  mode: 'STANDARD' | 'DAILY' = 'STANDARD'
+): Promise<{ data: LeaderboardRecord[] | null; error: string | null }> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('leaderboard')
       .select('id, player_name, score, created_at')
       .order('score', { ascending: false })
       .order('created_at', { ascending: true })
       .limit(20);
 
+    if (mode === 'DAILY') {
+      // In Supabase, search for records submitted with [DAILY] in player_name or created today
+      query = query.ilike('player_name', '%[DAILY]%');
+    } else {
+      query = query.not('player_name', 'ilike', '%[DAILY]%');
+    }
+
+    const { data, error } = await query;
+
     if (error) {
       console.warn('Supabase fetchLeaderboard error:', error.message);
       return { data: null, error: error.message };
     }
 
-    return { data: (data as LeaderboardRecord[]) || [], error: null };
+    const formatted = (data as LeaderboardRecord[]).map((r) => ({
+      ...r,
+      player_name: r.player_name.replace(' [DAILY]', '').replace('[DAILY]', '').trim(),
+      mode,
+    }));
+
+    return { data: formatted, error: null };
   } catch (err: any) {
     console.warn('Supabase network error:', err);
     return { data: null, error: err.message || 'Network error connecting to Supabase' };
@@ -44,13 +61,17 @@ export const fetchTopLeaderboard = async (): Promise<{ data: LeaderboardRecord[]
  */
 export const submitScore = async (
   playerName: string,
-  score: number
+  score: number,
+  mode: 'STANDARD' | 'DAILY' = 'STANDARD'
 ): Promise<{ success: boolean; rank?: number; error?: string }> => {
   if (!playerName || playerName.trim() === '') {
     playerName = 'Don The Great';
   }
 
-  const cleanName = playerName.trim().substring(0, 25);
+  let cleanName = playerName.trim().substring(0, 22);
+  if (mode === 'DAILY') {
+    cleanName = `${cleanName} [DAILY]`;
+  }
 
   try {
     const { data, error } = await supabase
@@ -64,12 +85,19 @@ export const submitScore = async (
     }
 
     // Determine rank in global table
-    const { count } = await supabase
+    let countQuery = supabase
       .from('leaderboard')
       .select('*', { count: 'exact', head: true })
       .gt('score', score);
 
-    const rank = (count !== null && count !== undefined) ? count + 1 : undefined;
+    if (mode === 'DAILY') {
+      countQuery = countQuery.ilike('player_name', '%[DAILY]%');
+    } else {
+      countQuery = countQuery.not('player_name', 'ilike', '%[DAILY]%');
+    }
+
+    const { count } = await countQuery;
+    const rank = count !== null && count !== undefined ? count + 1 : 1;
 
     return { success: true, rank };
   } catch (err: any) {
