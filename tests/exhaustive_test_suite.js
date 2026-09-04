@@ -25,12 +25,12 @@ console.log('================================================================\n'
 // -------------------------------------------------------------
 // DOMAIN 1: Delta-Time Physics & Expanded Wall Gap
 // -------------------------------------------------------------
-console.log('📌 DOMAIN 1: Delta-Time Physics & Expanded Wall Gap (185px)');
+console.log('📌 DOMAIN 1: Delta-Time Physics & Expanded Wall Gap (240px)');
 {
-  const BASE_GRAVITY = 0.38;
-  const BASE_JUMP_VELOCITY = -7.4;
-  const WALL_GAP = 185;
-  const BIRD_SIZE = 52;
+  const BASE_GRAVITY = 0.32;
+  const BASE_JUMP_VELOCITY = -6.8;
+  const WALL_GAP = 240;
+  const BIRD_SIZE = 58;
 
   // 1.1 Gravity test
   const dt60 = 1.0;
@@ -41,13 +41,13 @@ console.log('📌 DOMAIN 1: Delta-Time Physics & Expanded Wall Gap (185px)');
 
   // 1.2 Wall gap clearance ratio
   const clearanceMargin = WALL_GAP - BIRD_SIZE;
-  assert(clearanceMargin >= 130, 'Expanded wall gap provides over 130px of comfortable clearance');
+  assert(clearanceMargin >= 180, 'Expanded wall gap provides over 180px of comfortable clearance');
 
   // 1.3 Aerodynamic rotation lerp
   let rotation = -10;
   const targetRot = 50;
   const dtFactor = 1.0;
-  const smoothRot = rotation + (targetRot - rotation) * 0.24 * dtFactor;
+  const smoothRot = rotation + (targetRot - rotation) * 0.22 * dtFactor;
   assert(smoothRot > rotation && smoothRot < targetRot, 'Aerodynamic rotation smoothly transitions towards target');
 }
 
