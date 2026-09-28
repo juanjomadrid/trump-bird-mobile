@@ -160,6 +160,14 @@ export const StorageService = {
     }
   },
 
+  setUnlockedSkins: async (skins: BirdSkinId[]): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(KEYS.UNLOCKED_SKINS, JSON.stringify(skins));
+    } catch (e) {
+      console.warn('Failed to save unlocked skins', e);
+    }
+  },
+
   getCoins: async (): Promise<number> => {
     try {
       const raw = await AsyncStorage.getItem(KEYS.COINS);

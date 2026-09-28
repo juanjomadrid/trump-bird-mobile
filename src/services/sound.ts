@@ -84,11 +84,28 @@ export class SoundManager {
     }
   }
 
+  public static playWhoosh() {
+    if (this.settings.hapticsEnabled) {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+  }
+
   public static play(soundName: string) {
     if (!this.settings.soundEnabled) return;
-    // Basic implementation for generic sound playing
-    // (This was previously missing, causing a TS error in useGameEngine.ts)
-    // In a real app this might use expo-av to play a sound file.
+
+    if (soundName === 'WHOOSH') {
+      this.playWhoosh();
+    } else if (soundName === 'FLAP') {
+      this.playFlap();
+    } else if (soundName === 'COIN') {
+      this.playCoin();
+    } else if (soundName === 'CRASH') {
+      this.playCrash();
+    } else if (soundName === 'SHIELD_BREAK') {
+      this.playShieldBreak();
+    }
   }
 
   public static playFlap() {
@@ -183,6 +200,22 @@ export class SoundManager {
     ];
     const phrase = crashPhrases[Math.floor(Math.random() * crashPhrases.length)];
     this.speakSatiricalLine(phrase, true);
+  }
+
+  public static playShatter() {
+    if (this.settings.hapticsEnabled) {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } catch {}
+    }
+  }
+
+  public static playPowerup() {
+    if (this.settings.hapticsEnabled) {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+    }
   }
 
   public static playShieldBreak() {

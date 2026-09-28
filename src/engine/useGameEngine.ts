@@ -202,9 +202,9 @@ export const useGameEngine = () => {
       const next = [...prev];
       for (let i = 0; i < next.length; i++) {
         if (next[i].id === questId && !next[i].completed) {
-          const current = Math.min(next[i].target, next[i].current + amount);
-          const completed = current >= next[i].target;
-          next[i] = { ...next[i], current, completed };
+              const progress = Math.min(next[i].target, next[i].progress + amount);
+          const completed = progress >= next[i].target;
+          next[i] = { ...next[i], progress, completed };
         }
       }
       StorageService.setQuests(next);
@@ -226,7 +226,7 @@ export const useGameEngine = () => {
       });
 
       setCoins((c) => {
-        const nextCoins = c + targetQuest.rewardCoins;
+        const nextCoins = c + (targetQuest.rewardCoins || 50);
         StorageService.setCoins(nextCoins);
         coinsCountRef.current = nextCoins;
         return nextCoins;
@@ -249,8 +249,8 @@ export const useGameEngine = () => {
       classic: 0,
       tuxedo: 80,
       golfer: 150,
-      maga_cap: 250,
-      airforce1: 500,
+      maga: 250,
+      airforceone: 500,
     };
     const cost = prices[skinId] || 0;
     if (coinsCountRef.current >= cost) {
