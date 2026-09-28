@@ -203,14 +203,23 @@ export const useGameEngine = () => {
   // Update Quest Progress helper
   const updateQuestProgress = useCallback((questId: string, amount: number = 1) => {
     setQuests((prev) => {
-      const next = prev.map((q) => {
-        if (q.id === questId && !q.completed) {
-          const current = Math.min(q.target, q.current + amount);
-          const completed = current >= q.target;
-          return { ...q, current, completed };
+      let updated = false;
+      for (let i = 0; i < prev.length; i++) {
+        if (prev[i].id === questId && !prev[i].completed) {
+          updated = true;
+          break;
         }
-        return q;
-      });
+      }
+      if (!updated) return prev;
+
+      const next = [...prev];
+      for (let i = 0; i < next.length; i++) {
+        if (next[i].id === questId && !next[i].completed) {
+          const current = Math.min(next[i].target, next[i].current + amount);
+          const completed = current >= next[i].target;
+          next[i] = { ...next[i], current, completed };
+        }
+      }
       StorageService.setQuests(next);
       return next;
     });
@@ -236,7 +245,12 @@ export const useGameEngine = () => {
         return nextCoins;
       });
 
-      const next = prev.map((q) => (q.id === questId ? { ...q, claimed: true } : q));
+      const next = [...prev];
+      for (let i = 0; i < next.length; i++) {
+        if (next[i].id === questId) {
+          next[i] = { ...next[i], claimed: true };
+        }
+      }
       StorageService.setQuests(next);
       return next;
     });
@@ -357,26 +371,26 @@ export const useGameEngine = () => {
     updateQuestProgress('q_powerups', 1);
 
     // Obliterate all on-screen obstacles, watermelon projectiles and enemies
-    obstaclesRef.current = obstaclesRef.current.map((w) => {
+    for (let i = 0; i < obstaclesRef.current.length; i++) {
+      const w = obstaclesRef.current[i];
       spawnExplosion(w.x + w.width / 2, w.topHeight, '#FACC15', 8);
       spawnExplosion(w.x + w.width / 2, GROUND_Y - w.bottomHeight, '#FACC15', 8);
-      return {
-        ...w,
-        destroyedTop: true,
-        destroyedBottom: true,
-      };
-    });
+      w.destroyedTop = true;
+      w.destroyedBottom = true;
+    }
 
-    projectilesRef.current = projectilesRef.current.map((p) => {
+    for (let i = 0; i < projectilesRef.current.length; i++) {
+      const p = projectilesRef.current[i];
       spawnExplosion(p.x, p.y, '#DC2626', 8);
-      return { ...p, destroyed: true };
-    });
+      p.destroyed = true;
+    }
 
-    enemiesRef.current = enemiesRef.current.map((e) => {
+    for (let i = 0; i < enemiesRef.current.length; i++) {
+      const e = enemiesRef.current[i];
       spawnExplosion(e.x, e.y, '#EF4444', 10);
       updateQuestProgress('q_enemies', 1);
-      return { ...e, destroyed: true };
-    });
+      e.destroyed = true;
+    }
 
     scoreRef.current += 5;
     setScore(scoreRef.current);
