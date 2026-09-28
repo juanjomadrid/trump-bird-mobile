@@ -190,23 +190,18 @@ export const useGameEngine = () => {
   // Update Quest Progress helper
   const updateQuestProgress = useCallback((questId: string, amount: number = 1) => {
     setQuests((prev) => {
-      let updated = false;
-      for (let i = 0; i < prev.length; i++) {
-        if (prev[i].id === questId && !prev[i].completed) {
-          updated = true;
-          break;
-        }
+      const targetIndex = prev.findIndex((q) => q.id === questId);
+
+      if (targetIndex === -1 || prev[targetIndex].completed) {
+        return prev;
       }
-      if (!updated) return prev;
 
       const next = [...prev];
-      for (let i = 0; i < next.length; i++) {
-        if (next[i].id === questId && !next[i].completed) {
-              const progress = Math.min(next[i].target, next[i].progress + amount);
-          const completed = progress >= next[i].target;
-          next[i] = { ...next[i], progress, completed };
-        }
-      }
+      const q = next[targetIndex];
+      const current = Math.min(q.target, q.current + amount);
+      const completed = current >= q.target;
+      next[targetIndex] = { ...q, current, completed };
+
       StorageService.setQuests(next);
       return next;
     });
