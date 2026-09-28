@@ -205,9 +205,9 @@ export const useGameEngine = () => {
     setQuests((prev) => {
       const next = prev.map((q) => {
         if (q.id === questId && !q.completed) {
-          const current = Math.min(q.target, q.current + amount);
-          const completed = current >= q.target;
-          return { ...q, current, completed };
+          const progress = Math.min(q.target, q.progress + amount);
+          const completed = progress >= q.target;
+          return { ...q, progress, completed };
         }
         return q;
       });
@@ -230,7 +230,7 @@ export const useGameEngine = () => {
       });
 
       setCoins((c) => {
-        const nextCoins = c + targetQuest.rewardCoins;
+        const nextCoins = c + (targetQuest.rewardCoins || 50);
         StorageService.setCoins(nextCoins);
         coinsCountRef.current = nextCoins;
         return nextCoins;
@@ -248,8 +248,8 @@ export const useGameEngine = () => {
       classic: 0,
       tuxedo: 80,
       golfer: 150,
-      maga_cap: 250,
-      airforce1: 500,
+      maga: 250,
+      airforceone: 500,
     };
     const cost = prices[skinId] || 0;
     if (coinsCountRef.current >= cost) {
@@ -743,7 +743,7 @@ export const useGameEngine = () => {
           x: p.x + p.vx * dtFactor,
           y: p.y + p.vy * dtFactor,
           life: p.life + 1 * dtFactor,
-          alpha: Math.max(0, 1 - p.life / pop.maxLife),
+          alpha: Math.max(0, 1 - p.life / p.maxLife),
         }))
         .filter((p) => p.life < p.maxLife);
 

@@ -189,6 +189,28 @@ class SoundEffectsManager {
       } catch {}
     }
   }
+
+  public playWhoosh() {
+    if (this.settings.hapticsEnabled) {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+  }
+
+  public play(type: string) {
+    if (type === 'WHOOSH') {
+      this.playWhoosh();
+    } else if (type === 'FLAP') {
+      this.playFlap();
+    } else if (type === 'COIN') {
+      this.playCoin();
+    } else if (type === 'CRASH') {
+      this.playCrash();
+    } else if (type === 'SHIELD_BREAK') {
+      this.playShieldBreak();
+    }
+  }
 }
 
 export const SoundManager = new SoundEffectsManager();
