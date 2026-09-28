@@ -152,6 +152,7 @@ export const useGameEngine = () => {
 
   // Load stored data
   useEffect(() => {
+    SoundManager.init();
     StorageService.getPlayerName().then(setPlayerName);
     StorageService.getHighScore().then((hs) => {
       setHighScore(hs);
