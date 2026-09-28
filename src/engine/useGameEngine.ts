@@ -553,16 +553,13 @@ export const useGameEngine = () => {
         if (nextMagnetTime <= 0) nextMagnetActive = false;
       }
 
-      birdRef.current = {
-        ...curBird,
-        y: nextY,
-        vy: nextVy,
-        rotation: smoothRot,
-        shieldActive: nextShieldActive,
-        shieldTimeRemaining: nextShieldTime,
-        magnetActive: nextMagnetActive,
-        magnetTimeRemaining: nextMagnetTime,
-      };
+      birdRef.current.y = nextY;
+      birdRef.current.vy = nextVy;
+      birdRef.current.rotation = smoothRot;
+      birdRef.current.shieldActive = nextShieldActive;
+      birdRef.current.shieldTimeRemaining = nextShieldTime;
+      birdRef.current.magnetActive = nextMagnetActive;
+      birdRef.current.magnetTimeRemaining = nextMagnetTime;
 
       // 4. Update Obstacles & Pass Detection
       for (let i = obstaclesRef.current.length - 1; i >= 0; i--) {
