@@ -278,24 +278,24 @@ console.log('\n📌 DOMAIN 12: Tactical Pause & Countdown State Machine');
 // -------------------------------------------------------------
 console.log('\n📌 DOMAIN 13: Deterministic Daily PRNG');
 {
-  function createDailyRng(seedStr) {
-    let h = 1779033703 ^ seedStr.length;
-    for (let i = 0; i < seedStr.length; i++) {
-      h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
-      h = (h << 13) | (h >>> 19);
-    }
-    return () => {
-      h = Math.imul(h ^ (h >>> 16), 2246822507);
-      h = Math.imul(h ^ (h >>> 13), 3266489909);
-      return ((h ^= h >>> 16) >>> 0) / 4294967296;
-    };
-  }
+  const { createDailyRng } = require('../src/engine/rng.ts');
 
   const rng1 = createDailyRng('2026-08-31');
   const rng2 = createDailyRng('2026-08-31');
   const seq1 = [rng1(), rng1(), rng1()];
   const seq2 = [rng2(), rng2(), rng2()];
   assert(JSON.stringify(seq1) === JSON.stringify(seq2), 'Identical daily seeds produce identical obstacle sequences');
+
+  const rngFixed = createDailyRng('fixed-seed-123');
+  const fixedSeq = [rngFixed(), rngFixed(), rngFixed()];
+
+  // Assert against expected fixed values from the PRNG using the seed 'fixed-seed-123'
+  assert(
+    Math.abs(fixedSeq[0] - 0.8728446224704385) < 0.000001 &&
+    Math.abs(fixedSeq[1] - 0.5730278054252267) < 0.000001 &&
+    Math.abs(fixedSeq[2] - 0.8821357958950102) < 0.000001,
+    'Generator produces the expected deterministic sequence for a fixed seed'
+  );
 }
 
 // -------------------------------------------------------------

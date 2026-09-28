@@ -5,38 +5,34 @@ import { AudioSettings } from '../types/game';
 
 type SpeechListener = (text: string, durationMs?: number) => void;
 
-class SoundEffectsManager {
-  private settings: AudioSettings = {
+export class SoundManager {
+  private static settings: AudioSettings = {
     soundEnabled: true,
     voiceVolume: 1.0,
     sfxVolume: 1.0,
     hapticsEnabled: true,
     highContrastEnabled: false,
   };
-  private isSpeaking: boolean = false;
-  private speechListeners: SpeechListener[] = [];
+  private static isSpeaking: boolean = false;
+  private static speechListeners: SpeechListener[] = [];
 
-  constructor() {
-    this.init();
-  }
-
-  private async init() {
+  public static async init() {
     const loaded = await StorageService.getAudioSettings();
     this.settings = loaded;
   }
 
-  public registerSpeechListener(listener: SpeechListener) {
+  public static registerSpeechListener(listener: SpeechListener) {
     this.speechListeners.push(listener);
     return () => {
       this.speechListeners = this.speechListeners.filter((l) => l !== listener);
     };
   }
 
-  private notifySpeechListeners(text: string, durationMs: number = 2600) {
+  private static notifySpeechListeners(text: string, durationMs: number = 2600) {
     this.speechListeners.forEach((l) => l(text, durationMs));
   }
 
-  public updateSettings(newSettings: Partial<AudioSettings>) {
+  public static updateSettings(newSettings: Partial<AudioSettings>) {
     this.settings = { ...this.settings, ...newSettings };
     StorageService.setAudioSettings(this.settings);
     if (!this.settings.soundEnabled || this.settings.voiceVolume === 0) {
@@ -44,15 +40,15 @@ class SoundEffectsManager {
     }
   }
 
-  public getSettings(): AudioSettings {
+  public static getSettings(): AudioSettings {
     return this.settings;
   }
 
-  public setSoundEnabled(enabled: boolean) {
+  public static setSoundEnabled(enabled: boolean) {
     this.updateSettings({ soundEnabled: enabled });
   }
 
-  public isSoundEnabled(): boolean {
+  public static isSoundEnabled(): boolean {
     return this.settings.soundEnabled;
   }
 
@@ -61,7 +57,7 @@ class SoundEffectsManager {
    * Pitch: 0.88 (resonant, nasal baritone)
    * Rate: 0.94 (deliberate, punchy pacing with natural emphasis)
    */
-  public speakSatiricalLine(text: string, force: boolean = false, displayDurationMs?: number) {
+  public static speakSatiricalLine(text: string, force: boolean = false, displayDurationMs?: number) {
     // Notify visual comic balloon regardless of audio mute so subtitles appear
     this.notifySpeechListeners(text, displayDurationMs || 2800);
 
@@ -88,14 +84,14 @@ class SoundEffectsManager {
     }
   }
 
-  public playFlap() {
+  public static playFlap() {
     if (!this.settings.hapticsEnabled) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {}
   }
 
-  public playCoin() {
+  public static playCoin() {
     if (this.settings.hapticsEnabled) {
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -103,7 +99,7 @@ class SoundEffectsManager {
     }
   }
 
-  public playScore(currentScore: number) {
+  public static playScore(currentScore: number) {
     if (this.settings.hapticsEnabled) {
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -122,7 +118,7 @@ class SoundEffectsManager {
     }
   }
 
-  public playComboMax() {
+  public static playComboMax() {
     if (this.settings.hapticsEnabled) {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -131,7 +127,7 @@ class SoundEffectsManager {
     this.speakSatiricalLine("Super popular! Maximum ratings! Tremendous!", true, 2200);
   }
 
-  public playPowerUp(type: 'IRON_DOME' | 'EXECUTIVE_ORDER' | 'GOLDEN_MAGNET') {
+  public static playPowerUp(type: 'IRON_DOME' | 'EXECUTIVE_ORDER' | 'GOLDEN_MAGNET') {
     if (this.settings.hapticsEnabled) {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -165,7 +161,7 @@ class SoundEffectsManager {
     }
   }
 
-  public playCrash() {
+  public static playCrash() {
     if (this.settings.hapticsEnabled) {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -182,7 +178,7 @@ class SoundEffectsManager {
     this.speakSatiricalLine(phrase, true);
   }
 
-  public playShieldBreak() {
+  public static playShieldBreak() {
     if (this.settings.hapticsEnabled) {
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -190,7 +186,7 @@ class SoundEffectsManager {
     }
   }
 
-  public playWhoosh() {
+  public static playWhoosh() {
     if (this.settings.hapticsEnabled) {
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -198,7 +194,7 @@ class SoundEffectsManager {
     }
   }
 
-  public play(type: string) {
+  public static play(type: string) {
     if (type === 'WHOOSH') {
       this.playWhoosh();
     } else if (type === 'FLAP') {
@@ -212,5 +208,3 @@ class SoundEffectsManager {
     }
   }
 }
-
-export const SoundManager = new SoundEffectsManager();
