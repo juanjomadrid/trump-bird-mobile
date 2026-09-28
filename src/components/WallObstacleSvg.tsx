@@ -12,6 +12,7 @@ import Svg, {
   Circle,
   Text as SvgText,
   Polygon,
+  Pattern,
 } from 'react-native-svg';
 
 interface WallObstacleSvgProps {
@@ -54,39 +55,26 @@ export const WallObstacleSvg: React.FC<WallObstacleSvgProps> = ({
   const capY = isTop ? height - capHeight : 0;
   const bodyY = isTop ? 0 : capHeight;
 
-  // Brick rows generator
   const brickRowHeight = 16;
-  const rowsCount = Math.ceil(bodyHeight / brickRowHeight);
-  const brickRows = [];
-
-  for (let i = 0; i < rowsCount; i++) {
-    const yPos = bodyY + i * brickRowHeight;
-    const isOdd = i % 2 === 1;
-    brickRows.push(
-      <G key={`row_${i}`}>
-        {/* Horizontal mortar with 3D highlight */}
-        <Line x1="0" y1={yPos} x2={width} y2={yPos} stroke="#270A02" strokeWidth="2.2" />
-        <Line x1="0" y1={yPos + 1} x2={width} y2={yPos + 1} stroke="#B45309" strokeWidth="0.8" strokeOpacity="0.4" />
-
-        {/* Vertical mortar lines */}
-        {isOdd ? (
-          <>
-            <Line x1={width * 0.25} y1={yPos} x2={width * 0.25} y2={yPos + brickRowHeight} stroke="#270A02" strokeWidth="1.8" />
-            <Line x1={width * 0.75} y1={yPos} x2={width * 0.75} y2={yPos + brickRowHeight} stroke="#270A02" strokeWidth="1.8" />
-          </>
-        ) : (
-          <>
-            <Line x1={width * 0.5} y1={yPos} x2={width * 0.5} y2={yPos + brickRowHeight} stroke="#270A02" strokeWidth="1.8" />
-          </>
-        )}
-      </G>
-    );
-  }
 
   return (
     <View style={[styles.container, { width, height }]}>
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         <Defs>
+          {/* Brick Pattern */}
+          <Pattern id="brickPattern" patternUnits="userSpaceOnUse" width={width} height={brickRowHeight * 2}>
+            {/* Row 1 (Even) */}
+            <Line x1="0" y1="0" x2={width} y2="0" stroke="#270A02" strokeWidth="2.2" />
+            <Line x1="0" y1="1" x2={width} y2="1" stroke="#B45309" strokeWidth="0.8" strokeOpacity="0.4" />
+            <Line x1={width * 0.5} y1="0" x2={width * 0.5} y2={brickRowHeight} stroke="#270A02" strokeWidth="1.8" />
+
+            {/* Row 2 (Odd) */}
+            <Line x1="0" y1={brickRowHeight} x2={width} y2={brickRowHeight} stroke="#270A02" strokeWidth="2.2" />
+            <Line x1="0" y1={brickRowHeight + 1} x2={width} y2={brickRowHeight + 1} stroke="#B45309" strokeWidth="0.8" strokeOpacity="0.4" />
+            <Line x1={width * 0.25} y1={brickRowHeight} x2={width * 0.25} y2={brickRowHeight * 2} stroke="#270A02" strokeWidth="1.8" />
+            <Line x1={width * 0.75} y1={brickRowHeight} x2={width * 0.75} y2={brickRowHeight * 2} stroke="#270A02" strokeWidth="1.8" />
+          </Pattern>
+
           {/* 3D Brick Gradient */}
           <LinearGradient id="brickGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <Stop offset="0%" stopColor="#7C2D12" />
@@ -126,7 +114,13 @@ export const WallObstacleSvg: React.FC<WallObstacleSvgProps> = ({
         />
 
         {/* 2. Brick Patterns */}
-        {brickRows}
+        <Rect
+          x="2"
+          y={bodyY}
+          width={width - 4}
+          height={bodyHeight}
+          fill="url(#brickPattern)"
+        />
 
         {/* 3. Reinforced Concrete Coping Cap */}
         <Rect
