@@ -221,7 +221,7 @@ export const useGameEngine = () => {
       });
 
       setCoins((c) => {
-        const nextCoins = c + targetQuest.rewardCoins;
+        const nextCoins = c + (targetQuest.rewardCoins || 50);
         StorageService.setCoins(nextCoins);
         coinsCountRef.current = nextCoins;
         return nextCoins;
@@ -244,8 +244,8 @@ export const useGameEngine = () => {
       classic: 0,
       tuxedo: 80,
       golfer: 150,
-      maga_cap: 250,
-      airforce1: 500,
+      maga: 250,
+      airforceone: 500,
     };
     const cost = prices[skinId] || 0;
     if (coinsCountRef.current >= cost) {

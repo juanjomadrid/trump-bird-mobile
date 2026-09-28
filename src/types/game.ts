@@ -134,6 +134,7 @@ export interface PresidentialQuest {
   completed: boolean;
   claimed: boolean;
   rewardStars: number;
+  rewardCoins?: number;
   icon: string;
 }
 

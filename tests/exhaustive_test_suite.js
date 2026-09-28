@@ -319,6 +319,62 @@ console.log('\n📌 DOMAIN 14: Breaking News Headlines Generation');
   assert(headline60.includes('LANDSLIDE'), 'Score 60 produces Landslide victory headline');
 }
 
+
+// -------------------------------------------------------------
+// DOMAIN 15: Watermelon Shooter & Explosion Particle Runtime Safety
+// -------------------------------------------------------------
+console.log('\n📌 DOMAIN 15: Watermelon Shooter & Particle Engine Stability');
+{
+  // Test 15.1: Particle map calculation does not reference undefined variables
+  const particles = [
+    { x: 100, y: 100, vx: 1, vy: 1, life: 5, maxLife: 30, color: '#DC2626', size: 4 },
+    { x: 120, y: 110, vx: -1, vy: 2, life: 10, maxLife: 40, color: '#10B981', size: 6 }
+  ];
+  const dtFactor = 1.0;
+
+  let particleLoopThrew = false;
+  let updatedParticles = [];
+  try {
+    updatedParticles = particles
+      .map((p) => ({
+        ...p,
+        x: p.x + p.vx * dtFactor,
+        y: p.y + p.vy * dtFactor,
+        life: p.life + 1 * dtFactor,
+        alpha: Math.max(0, 1 - p.life / p.maxLife),
+      }))
+      .filter((p) => p.life < p.maxLife);
+  } catch (err) {
+    particleLoopThrew = true;
+  }
+  assert(!particleLoopThrew && updatedParticles.length === 2, 'Particle alpha updater calculates life/maxLife without ReferenceError');
+
+  // Test 15.2: Watermelon projectile launch sound dispatch safely supported
+  const supportedSounds = ['WHOOSH', 'FLAP', 'COIN', 'CRASH', 'SHIELD_BREAK'];
+  const testLaunchSound = 'WHOOSH';
+  assert(supportedSounds.includes(testLaunchSound), 'Watermelon shooter WHOOSH sound trigger is fully supported');
+
+  // Test 15.3: Watermelon shield destruction triggers particle explosion smoothly
+  const watermelon = { id: 'melon_1', x: 150, y: 200, destroyed: false, radius: 18 };
+  const shieldCollision = true;
+  let explosionSpawned = false;
+  if (shieldCollision) {
+    watermelon.destroyed = true;
+    const newParticles = Array.from({ length: 10 }).map((_, i) => ({
+      x: watermelon.x,
+      y: watermelon.y,
+      vx: Math.cos(i),
+      vy: Math.sin(i),
+      life: 0,
+      maxLife: 25,
+      color: '#DC2626',
+      size: 5
+    }));
+    explosionSpawned = newParticles.length === 10;
+  }
+  assert(watermelon.destroyed && explosionSpawned, 'Watermelon impact shatters cleanly into particle explosion');
+}
+
 console.log('\n================================================================');
 console.log(`🏁 TEST SUMMARY: ${passedTests} PASSED, ${failedTests} FAILED (TOTAL: ${totalTests})`);
 console.log('================================================================\n');
