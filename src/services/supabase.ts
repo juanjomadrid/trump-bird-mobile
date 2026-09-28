@@ -6,8 +6,7 @@ const SUPABASE_URL =
   process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://oqspeunnvirndrkpsped.supabase.co';
 
 const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  'sb_publishable_tYnU6GHgz4lrvsBWtFFxDg_uHyURBwz';
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
