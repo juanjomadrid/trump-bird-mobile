@@ -64,6 +64,10 @@ export const submitScore = async (
   score: number,
   mode: 'STANDARD' | 'DAILY' = 'STANDARD'
 ): Promise<{ success: boolean; rank?: number; error?: string }> => {
+  if (playerName) {
+    playerName = playerName.replace(/[^a-zA-Z0-9\s\-_]/g, '');
+  }
+
   if (!playerName || playerName.trim() === '') {
     playerName = 'Don The Great';
   }
