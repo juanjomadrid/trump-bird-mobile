@@ -578,174 +578,176 @@ export const useGameEngine = () => {
       };
 
       // 4. Update Obstacles & Pass Detection
-      obstaclesRef.current = obstaclesRef.current
-        .map((w) => {
-          const nextX = w.x - currentSpeed;
-          if (!w.passed && nextX + w.width < birdRef.current.x) {
-            updateQuestProgress('q_walls', 1);
+      for (let i = obstaclesRef.current.length - 1; i >= 0; i--) {
+        const w = obstaclesRef.current[i];
+        w.x -= currentSpeed;
 
-            // Approval Combo multiplier
-            const nextCur = comboRef.current.current + 1;
-            const isMax = nextCur >= comboRef.current.max;
-            if (isMax && !comboRef.current.isMaxed) {
-              SoundManager.playComboMax();
-              spawnPopup(birdRef.current.x, birdRef.current.y - 35, '🔥 2X APPROVAL MULTIPLIER!', '#F59E0B');
-            }
-            comboRef.current = {
-              current: Math.min(comboRef.current.max, nextCur),
-              max: comboRef.current.max,
-              multiplier: isMax ? 2 : 1,
-              isMaxed: isMax,
-            };
-            setCombo({ ...comboRef.current });
+        if (!w.passed && w.x + w.width < birdRef.current.x) {
+          updateQuestProgress('q_walls', 1);
 
-            const addScore = comboRef.current.multiplier;
-            scoreRef.current += addScore;
-            const newScore = scoreRef.current;
-            setScore(newScore);
-            SoundManager.playScore(newScore);
-
-            spawnPopup(
-              birdRef.current.x,
-              birdRef.current.y - 20,
-              comboRef.current.multiplier > 1 ? `+${addScore} (2X COMBO!)` : '+1 VOTE',
-              comboRef.current.multiplier > 1 ? '#FACC15' : '#38BDF8'
-            );
-
-            if (playModeRef.current === 'DAILY') {
-              if (newScore > dailyHighScoreRef.current) {
-                dailyHighScoreRef.current = newScore;
-                setDailyHighScore(newScore);
-                StorageService.setDailyHighScore(newScore, getTodayKey());
-              }
-            } else {
-              if (newScore > highScoreRef.current) {
-                if (highScoreRef.current > 0 && newScore === highScoreRef.current + 1) {
-                  spawnPopup(birdRef.current.x, birdRef.current.y - 45, '🏆 NEW ALL-TIME RECORD!', '#EC4899');
-                }
-                highScoreRef.current = newScore;
-                setHighScore(newScore);
-                StorageService.setHighScore(newScore);
-              }
-            }
-
-            return { ...w, x: nextX, passed: true };
+          // Approval Combo multiplier
+          const nextCur = comboRef.current.current + 1;
+          const isMax = nextCur >= comboRef.current.max;
+          if (isMax && !comboRef.current.isMaxed) {
+            SoundManager.playComboMax();
+            spawnPopup(birdRef.current.x, birdRef.current.y - 35, '🔥 2X APPROVAL MULTIPLIER!', '#F59E0B');
           }
-          return { ...w, x: nextX };
-        })
-        .filter((w) => w.x + w.width > -50);
+
+          comboRef.current.current = Math.min(comboRef.current.max, nextCur);
+          comboRef.current.multiplier = isMax ? 2 : 1;
+          comboRef.current.isMaxed = isMax;
+          setCombo({ ...comboRef.current });
+
+          const addScore = comboRef.current.multiplier;
+          scoreRef.current += addScore;
+          const newScore = scoreRef.current;
+          setScore(newScore);
+          SoundManager.playScore(newScore);
+
+          spawnPopup(
+            birdRef.current.x,
+            birdRef.current.y - 20,
+            comboRef.current.multiplier > 1 ? `+${addScore} (2X COMBO!)` : '+1 VOTE',
+            comboRef.current.multiplier > 1 ? '#FACC15' : '#38BDF8'
+          );
+
+          if (playModeRef.current === 'DAILY') {
+            if (newScore > dailyHighScoreRef.current) {
+              dailyHighScoreRef.current = newScore;
+              setDailyHighScore(newScore);
+              StorageService.setDailyHighScore(newScore, getTodayKey());
+            }
+          } else {
+            if (newScore > highScoreRef.current) {
+              if (highScoreRef.current > 0 && newScore === highScoreRef.current + 1) {
+                spawnPopup(birdRef.current.x, birdRef.current.y - 45, '🏆 NEW ALL-TIME RECORD!', '#EC4899');
+              }
+              highScoreRef.current = newScore;
+              setHighScore(newScore);
+              StorageService.setHighScore(newScore);
+            }
+          }
+
+          w.passed = true;
+        }
+
+        if (w.x + w.width <= -50) {
+          obstaclesRef.current.splice(i, 1);
+        }
+      }
 
       // 5. Update PowerUps with Golden Magnet Attraction
-      powerUpsRef.current = powerUpsRef.current
-        .map((p) => {
-          let nextX = p.x - currentSpeed;
-          let nextY = p.y;
+      for (let i = powerUpsRef.current.length - 1; i >= 0; i--) {
+        const p = powerUpsRef.current[i];
+        p.x -= currentSpeed;
 
-          if (birdRef.current.magnetActive && !p.collected) {
-            const dx = birdRef.current.x - p.x;
-            const dy = birdRef.current.y - p.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 320 && dist > 1) {
-              const pullStrength = 7.0 * dtFactor;
-              nextX += (dx / dist) * pullStrength;
-              nextY += (dy / dist) * pullStrength;
-            }
+        if (birdRef.current.magnetActive && !p.collected) {
+          const dx = birdRef.current.x - p.x;
+          const dy = birdRef.current.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 320 && dist > 1) {
+            const pullStrength = 7.0 * dtFactor;
+            p.x += (dx / dist) * pullStrength;
+            p.y += (dy / dist) * pullStrength;
           }
+        }
 
-          return {
-            ...p,
-            x: nextX,
-            y: nextY,
-            pulseScale: 1.0 + Math.sin(time * 0.008) * 0.15,
-          };
-        })
-        .filter((p) => p.x > -50 && !p.collected);
+        p.pulseScale = 1.0 + Math.sin(time * 0.008) * 0.15;
+
+        if (p.x <= -50 || p.collected) {
+          powerUpsRef.current.splice(i, 1);
+        }
+      }
 
       // 6. Update Golden Coins
-      coinsRef.current = coinsRef.current
-        .map((c) => {
-          let nextX = c.x - currentSpeed;
-          let nextY = c.y;
+      for (let i = coinsRef.current.length - 1; i >= 0; i--) {
+        const c = coinsRef.current[i];
+        c.x -= currentSpeed;
 
-          if (birdRef.current.magnetActive && !c.collected) {
-            const dx = birdRef.current.x - c.x;
-            const dy = birdRef.current.y - c.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 320 && dist > 1) {
-              const pullStrength = 8.5 * dtFactor;
-              nextX += (dx / dist) * pullStrength;
-              nextY += (dy / dist) * pullStrength;
-            }
+        if (birdRef.current.magnetActive && !c.collected) {
+          const dx = birdRef.current.x - c.x;
+          const dy = birdRef.current.y - c.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 320 && dist > 1) {
+            const pullStrength = 8.5 * dtFactor;
+            c.x += (dx / dist) * pullStrength;
+            c.y += (dy / dist) * pullStrength;
           }
+        }
 
-          return {
-            ...c,
-            x: nextX,
-            y: nextY,
-            pulseScale: 1.0 + Math.sin(time * 0.01 + c.y) * 0.1,
-          };
-        })
-        .filter((c) => c.x > -50 && !c.collected);
+        c.pulseScale = 1.0 + Math.sin(time * 0.01 + c.y) * 0.1;
+
+        if (c.x <= -50 || c.collected) {
+          coinsRef.current.splice(i, 1);
+        }
+      }
 
       // 7. Update Turban Shooter Enemies
-      enemiesRef.current = enemiesRef.current
-        .map((e) => {
-          let nextCooldown = e.shootCooldown - 1 * dtFactor;
+      for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
+        const e = enemiesRef.current[i];
+        e.shootCooldown -= 1 * dtFactor;
 
-          if (nextCooldown <= 0 && !e.destroyed) {
-            const targetProjY = e.y + 10;
-            const projSpeed = (4.5 + getRandom() * 1.0) * dtFactor;
+        if (e.shootCooldown <= 0 && !e.destroyed) {
+          const targetProjY = e.y + 10;
+          const projSpeed = (4.5 + getRandom() * 1.0) * dtFactor;
 
-            projectilesRef.current.push({
-              id: `melon_${Date.now()}_${getRandom()}`,
-              x: e.x - 20,
-              y: targetProjY,
-              vx: -projSpeed,
-              vy: (getRandom() - 0.5) * 0.3,
-              radius: 18,
-              rotation: 0,
-              destroyed: false,
-            });
+          projectilesRef.current.push({
+            id: `melon_${Date.now()}_${getRandom()}`,
+            x: e.x - 20,
+            y: targetProjY,
+            vx: -projSpeed,
+            vy: (getRandom() - 0.5) * 0.3,
+            radius: 18,
+            rotation: 0,
+            destroyed: false,
+          });
 
-            SoundManager.play('WHOOSH');
-            return { ...e, destroyed: true };
-          }
+          SoundManager.play('WHOOSH');
+          e.destroyed = true;
+        }
 
-          return { ...e, shootCooldown: nextCooldown };
-        })
-        .filter((e) => !e.destroyed);
+        if (e.destroyed) {
+          enemiesRef.current.splice(i, 1);
+        }
+      }
 
       // 8. Update Watermelon Projectiles
-      projectilesRef.current = projectilesRef.current
-        .map((m) => ({
-          ...m,
-          x: m.x + m.vx,
-          y: m.y + m.vy,
-          rotation: m.rotation - 7 * dtFactor,
-        }))
-        .filter((m) => m.x > -60 && !m.destroyed);
+      for (let i = projectilesRef.current.length - 1; i >= 0; i--) {
+        const m = projectilesRef.current[i];
+        m.x += m.vx;
+        m.y += m.vy;
+        m.rotation -= 7 * dtFactor;
+
+        if (m.x <= -60 || m.destroyed) {
+          projectilesRef.current.splice(i, 1);
+        }
+      }
 
       // 9. Update Floating Popups
-      popupsRef.current = popupsRef.current
-        .map((pop) => ({
-          ...pop,
-          y: pop.y - 1.2 * dtFactor,
-          life: pop.life + 1 * dtFactor,
-          alpha: Math.max(0, 1 - pop.life / pop.maxLife),
-          scale: Math.max(0.9, pop.scale - 0.006 * dtFactor),
-        }))
-        .filter((pop) => pop.life < pop.maxLife);
+      for (let i = popupsRef.current.length - 1; i >= 0; i--) {
+        const pop = popupsRef.current[i];
+        pop.y -= 1.2 * dtFactor;
+        pop.life += 1 * dtFactor;
+        pop.alpha = Math.max(0, 1 - pop.life / pop.maxLife);
+        pop.scale = Math.max(0.9, pop.scale - 0.006 * dtFactor);
+
+        if (pop.life >= pop.maxLife) {
+          popupsRef.current.splice(i, 1);
+        }
+      }
 
       // 10. Update Particles
-      particlesRef.current = particlesRef.current
-        .map((p) => ({
-          ...p,
-          x: p.x + p.vx * dtFactor,
-          y: p.y + p.vy * dtFactor,
-          life: p.life + 1 * dtFactor,
-          alpha: Math.max(0, 1 - p.life / pop.maxLife),
-        }))
-        .filter((p) => p.life < p.maxLife);
+      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+        const p = particlesRef.current[i];
+        p.x += p.vx * dtFactor;
+        p.y += p.vy * dtFactor;
+        p.life += 1 * dtFactor;
+        p.alpha = Math.max(0, 1 - p.life / p.maxLife);
+
+        if (p.life >= p.maxLife) {
+          particlesRef.current.splice(i, 1);
+        }
+      }
 
       // 11. Precise & Forgiving Circular Hitbox Collisions
       const birdCenterX = birdRef.current.x;
