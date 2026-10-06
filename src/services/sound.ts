@@ -178,6 +178,22 @@ export class SoundManager {
     this.speakSatiricalLine(phrase, true);
   }
 
+  public static playShatter() {
+    if (this.settings.hapticsEnabled) {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } catch {}
+    }
+  }
+
+  public static playPowerup() {
+    if (this.settings.hapticsEnabled) {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+    }
+  }
+
   public static playShieldBreak() {
     if (this.settings.hapticsEnabled) {
       try {

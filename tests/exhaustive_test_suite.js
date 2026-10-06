@@ -330,7 +330,7 @@ console.log('\n📌 DOMAIN 15: Watermelon Shooter & Particle Engine Stability');
     { x: 120, y: 110, vx: -1, vy: 2, life: 10, maxLife: 40, color: '#10B981', size: 6 }
   ];
   const dtFactor = 1.0;
-  
+
   let particleLoopThrew = false;
   let updatedParticles = [];
   try {
@@ -412,7 +412,6 @@ console.log('\n📌 DOMAIN 16: Near-Miss Close Call Precision & Frame Optimizati
   assert(distToTop === 5 && scoreBonus === 2, 'Close Call successfully detects razor-thin wall proximity and awards +2 bonus');
   assert(obstacle.closeCallRewarded === true, 'Obstacle flags closeCallRewarded to prevent duplicate multi-triggering');
 }
-
 
 console.log('\n================================================================');
 console.log(`🏁 TEST SUMMARY: ${passedTests} PASSED, ${failedTests} FAILED (TOTAL: ${totalTests})`);
