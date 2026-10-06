@@ -11,7 +11,7 @@ interface BackgroundSkylineProps {
   highScore?: number;
 }
 
-export const BackgroundSkyline: React.FC<BackgroundSkylineProps> = ({
+export const BackgroundSkyline: React.FC<BackgroundSkylineProps> = React.memo(({
   scrollOffset,
   score,
   highScore = 0,
@@ -191,4 +191,4 @@ export const BackgroundSkyline: React.FC<BackgroundSkylineProps> = ({
       </Svg>
     </View>
   );
-};
+});

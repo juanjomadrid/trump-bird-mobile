@@ -8,7 +8,7 @@ interface EnemySvgProps {
   height?: number;
 }
 
-export const EnemySvg: React.FC<EnemySvgProps> = ({
+export const EnemySvg: React.FC<EnemySvgProps> = React.memo(({
   type = 'TURBAN_SHOOTER',
   width = 48,
   height = 48,
@@ -91,7 +91,7 @@ export const EnemySvg: React.FC<EnemySvgProps> = ({
       </Svg>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

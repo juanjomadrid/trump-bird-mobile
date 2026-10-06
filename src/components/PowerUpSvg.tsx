@@ -9,7 +9,7 @@ interface PowerUpSvgProps {
   pulseScale?: number;
 }
 
-export const PowerUpSvg: React.FC<PowerUpSvgProps> = ({
+export const PowerUpSvg: React.FC<PowerUpSvgProps> = React.memo(({
   type = 'IRON_DOME',
   size = 38,
   pulseScale = 1.0,
@@ -97,7 +97,7 @@ export const PowerUpSvg: React.FC<PowerUpSvgProps> = ({
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

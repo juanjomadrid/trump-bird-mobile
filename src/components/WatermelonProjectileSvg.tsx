@@ -7,7 +7,7 @@ interface WatermelonProjectileSvgProps {
   rotation?: number;
 }
 
-export const WatermelonProjectileSvg: React.FC<WatermelonProjectileSvgProps> = ({
+export const WatermelonProjectileSvg: React.FC<WatermelonProjectileSvgProps> = React.memo(({
   size = 32,
   rotation = 0,
 }) => {
@@ -62,7 +62,7 @@ export const WatermelonProjectileSvg: React.FC<WatermelonProjectileSvgProps> = (
       </Svg>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

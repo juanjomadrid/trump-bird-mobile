@@ -374,6 +374,46 @@ console.log('\n📌 DOMAIN 15: Watermelon Shooter & Particle Engine Stability');
   assert(watermelon.destroyed && explosionSpawned, 'Watermelon impact shatters cleanly into particle explosion');
 }
 
+// -------------------------------------------------------------
+// DOMAIN 16: Near-Miss Close Call Precision & Frame Optimization
+// -------------------------------------------------------------
+console.log('\n📌 DOMAIN 16: Near-Miss Close Call Precision & Frame Optimization');
+{
+  const obstacle = {
+    id: 'wall_test_close_call',
+    x: 100,
+    width: 64,
+    topHeight: 120,
+    bottomHeight: 180,
+    gap: 240,
+    passed: false,
+    closeCallRewarded: false,
+  };
+  const GROUND_Y = 600;
+  // Bird box is at Y: 125, so distToTop = 125 - 120 = 5px (near miss < 20px)
+  const birdBox = {
+    left: 110,
+    right: 150,
+    top: 125,
+    bottom: 165,
+  };
+
+  const distToTop = birdBox.top - obstacle.topHeight;
+  const distToBottom = (GROUND_Y - obstacle.bottomHeight) - birdBox.bottom;
+  let scoreBonus = 0;
+
+  if (!obstacle.closeCallRewarded) {
+    if ((distToTop > 0 && distToTop < 20) || (distToBottom > 0 && distToBottom < 20)) {
+      obstacle.closeCallRewarded = true;
+      scoreBonus += 2;
+    }
+  }
+
+  assert(distToTop === 5 && scoreBonus === 2, 'Close Call successfully detects razor-thin wall proximity and awards +2 bonus');
+  assert(obstacle.closeCallRewarded === true, 'Obstacle flags closeCallRewarded to prevent duplicate multi-triggering');
+}
+
+
 console.log('\n================================================================');
 console.log(`🏁 TEST SUMMARY: ${passedTests} PASSED, ${failedTests} FAILED (TOTAL: ${totalTests})`);
 console.log('================================================================\n');

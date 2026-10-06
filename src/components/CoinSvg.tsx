@@ -7,7 +7,7 @@ interface CoinSvgProps {
   pulseScale?: number;
 }
 
-export const CoinSvg: React.FC<CoinSvgProps> = ({
+export const CoinSvg: React.FC<CoinSvgProps> = React.memo(({
   size = 28,
   pulseScale = 1.0,
 }) => {
@@ -58,7 +58,7 @@ export const CoinSvg: React.FC<CoinSvgProps> = ({
       </Svg>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

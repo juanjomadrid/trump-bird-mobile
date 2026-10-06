@@ -8,7 +8,7 @@ interface Props {
   y: number;
 }
 
-export const SpeechBalloonSvg: React.FC<Props> = ({ text, visible, x, y }) => {
+export const SpeechBalloonSvg: React.FC<Props> = React.memo(({ text, visible, x, y }) => {
   if (!visible || !text) return null;
 
   return (
@@ -28,7 +28,7 @@ export const SpeechBalloonSvg: React.FC<Props> = ({ text, visible, x, y }) => {
       <View style={styles.tail} />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   balloonContainer: {

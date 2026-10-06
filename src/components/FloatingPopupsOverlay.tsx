@@ -6,7 +6,7 @@ interface Props {
   popups: FloatingPopup[];
 }
 
-export const FloatingPopupsOverlay: React.FC<Props> = ({ popups }) => {
+export const FloatingPopupsOverlay: React.FC<Props> = React.memo(({ popups }) => {
   if (!popups || popups.length === 0) return null;
 
   return (
@@ -29,7 +29,7 @@ export const FloatingPopupsOverlay: React.FC<Props> = ({ popups }) => {
       ))}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   popupContainer: {

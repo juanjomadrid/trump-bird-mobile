@@ -136,6 +136,12 @@ export const useGameEngine = () => {
   const dailyRngRef = useRef<(() => number) | null>(null);
   const lastTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number | null>(null);
+  const prevParticlesCountRef = useRef<number>(0);
+  const prevPopupsCountRef = useRef<number>(0);
+  const prevProjectilesCountRef = useRef<number>(0);
+  const prevEnemiesCountRef = useRef<number>(0);
+  const prevPowerUpsCountRef = useRef<number>(0);
+  const prevCoinsCountRef = useRef<number>(0);
 
   // Keep high scores ref in sync
   useEffect(() => {
@@ -863,20 +869,52 @@ export const useGameEngine = () => {
               setGameMode('GAMEOVER');
               return;
             }
+          } else if (!w.closeCallRewarded) {
+            // Near-miss "Close Call" razor-thin passage reward!
+            const distToTop = birdBox.top - w.topHeight;
+            const distToBottom = (GROUND_Y - w.bottomHeight) - birdBox.bottom;
+            if ((distToTop > 0 && distToTop < 20 && !w.destroyedTop) ||
+                (distToBottom > 0 && distToBottom < 20 && !w.destroyedBottom)) {
+              w.closeCallRewarded = true;
+              SoundManager.playCoin();
+              spawnExplosion(birdCenterX, birdCenterY, '#FACC15', 7);
+              spawnPopup(birdCenterX, birdCenterY - 26, '⚡ CLOSE CALL! +2', '#FACC15');
+              scoreRef.current += 2;
+              setScore(scoreRef.current);
+            }
           }
         }
       }
 
-      // 12. Batch React State Synchronization (Flawless 60 FPS Render)
+      // 12. Batch React State Synchronization (Optimized 60 FPS Render)
       setBird({ ...birdRef.current });
       setObstacles([...obstaclesRef.current]);
-      setPowerUps([...powerUpsRef.current]);
-      setSpawnedCoins([...coinsRef.current]);
-      setEnemies([...enemiesRef.current]);
-      setWatermelonProjectiles([...projectilesRef.current]);
-      setParticles([...particlesRef.current]);
-      setPopups([...popupsRef.current]);
       setScrollOffset(scrollOffsetRef.current);
+
+      if (powerUpsRef.current.length > 0 || prevPowerUpsCountRef.current > 0) {
+        setPowerUps([...powerUpsRef.current]);
+        prevPowerUpsCountRef.current = powerUpsRef.current.length;
+      }
+      if (coinsRef.current.length > 0 || prevCoinsCountRef.current > 0) {
+        setSpawnedCoins([...coinsRef.current]);
+        prevCoinsCountRef.current = coinsRef.current.length;
+      }
+      if (enemiesRef.current.length > 0 || prevEnemiesCountRef.current > 0) {
+        setEnemies([...enemiesRef.current]);
+        prevEnemiesCountRef.current = enemiesRef.current.length;
+      }
+      if (projectilesRef.current.length > 0 || prevProjectilesCountRef.current > 0) {
+        setWatermelonProjectiles([...projectilesRef.current]);
+        prevProjectilesCountRef.current = projectilesRef.current.length;
+      }
+      if (particlesRef.current.length > 0 || prevParticlesCountRef.current > 0) {
+        setParticles([...particlesRef.current]);
+        prevParticlesCountRef.current = particlesRef.current.length;
+      }
+      if (popupsRef.current.length > 0 || prevPopupsCountRef.current > 0) {
+        setPopups([...popupsRef.current]);
+        prevPopupsCountRef.current = popupsRef.current.length;
+      }
 
       animFrameRef.current = requestAnimationFrame(loop);
     };

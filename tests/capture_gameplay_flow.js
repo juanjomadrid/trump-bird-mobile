@@ -2,8 +2,6 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 const ADB = `"${process.env.LOCALAPPDATA}\\Android\\Sdk\\platform-tools\\adb.exe"`;
-const PACKAGE_NAME = 'com.juanjomadrid.trumpbird';
-const ACTIVITY = `${PACKAGE_NAME}/.MainActivity`;
 const ARTIFACTS_DIR = 'C:\\Users\\Juanjo\\.gemini\\antigravity-ide\\brain\\7d31e5a6-82ae-4edc-816e-111577e7bb98';
 
 const runAdb = (cmd) => {
@@ -28,45 +26,40 @@ const capture = (filename) => {
 const tap = (x, y) => runAdb(`shell input tap ${x} ${y}`);
 
 async function main() {
-  console.log('Capturing all modal views...');
-
-  // 1. Restart fresh app
-  runAdb(`shell am force-stop ${PACKAGE_NAME}`);
-  await sleep(1000);
-  runAdb(`shell am start -n ${ACTIVITY}`);
-  await sleep(3500);
-
-  // Capture Main Start Menu
-  capture('qa_modal_01_start_menu.png');
-
-  // 2. Open Quests Modal
-  tap(720, 2180);
-  await sleep(1500);
-  capture('qa_modal_02_quests.png');
-
-  // Close Quests
-  tap(720, 2300);
-  await sleep(1000);
-
-  // 3. Open Settings Modal (top right gear)
-  tap(1060, 770);
-  await sleep(1500);
-  capture('qa_modal_03_settings.png');
-
-  // Close Settings
+  console.log('--- 1. Tapping START CAMPAIGN RALLY ---');
   tap(720, 2050);
   await sleep(1000);
 
-  // 4. Open Wardrobe Modal
-  tap(430, 2180);
+  console.log('--- 2. Flapping in Flight ---');
+  tap(720, 1500);
+  await sleep(250);
+  tap(720, 1500);
+  await sleep(250);
+  tap(720, 1500);
+  await sleep(200);
+
+  capture('qa_05_gameplay_flight.png');
+
+  console.log('--- 3. Pausing Rally ---');
+  tap(1330, 230);
+  await sleep(1200);
+  capture('qa_06_tactical_pause.png');
+
+  console.log('--- 4. Resuming with Countdown ---');
+  tap(720, 1550);
+  await sleep(700);
+  capture('qa_07_resume_countdown.png');
+
+  console.log('--- 5. Waiting for Crash / Game Over ---');
+  await sleep(3500);
+  capture('qa_08_game_over.png');
+
+  console.log('--- 6. Opening Breaking News Share Card ---');
+  tap(720, 1600);
   await sleep(1500);
-  capture('qa_modal_04_wardrobe.png');
+  capture('qa_09_breaking_news_card.png');
 
-  // Close Wardrobe
-  tap(720, 2450);
-  await sleep(1000);
-
-  console.log('All modal views captured!');
+  console.log('--- Completed gameplay captures ---');
 }
 
 main().catch(console.error);

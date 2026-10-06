@@ -32,6 +32,9 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+.agent-backup/
+/*.png
 
 # typescript
 *.tsbuildinfo

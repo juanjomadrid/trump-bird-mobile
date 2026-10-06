@@ -22,7 +22,7 @@ interface DonBirdSvgProps {
   skinId?: BirdSkinId;
 }
 
-export const DonBirdSvg: React.FC<DonBirdSvgProps> = ({
+export const DonBirdSvg: React.FC<DonBirdSvgProps> = React.memo(({
   size = 54,
   rotation = 0,
   shieldActive = false,
@@ -404,7 +404,7 @@ export const DonBirdSvg: React.FC<DonBirdSvgProps> = ({
       </Svg>
     </View>
   );
-};
+});
 
 const LineStripes = () => (
   <G>

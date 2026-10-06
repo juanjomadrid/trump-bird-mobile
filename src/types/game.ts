@@ -38,6 +38,7 @@ export interface WallObstacle {
   destroyedTop?: boolean;
   destroyedBottom?: boolean;
   hasClimber?: boolean;
+  closeCallRewarded?: boolean;
 }
 
 export type PowerUpType = 'IRON_DOME' | 'EXECUTIVE_ORDER' | 'GOLDEN_MAGNET';

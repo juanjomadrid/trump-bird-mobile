@@ -23,7 +23,7 @@ interface WallObstacleSvgProps {
   hasClimber?: boolean;
 }
 
-export const WallObstacleSvg: React.FC<WallObstacleSvgProps> = ({
+export const WallObstacleSvg: React.FC<WallObstacleSvgProps> = React.memo(({
   width,
   height,
   isTop,
@@ -223,7 +223,7 @@ export const WallObstacleSvg: React.FC<WallObstacleSvgProps> = ({
       </Svg>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
